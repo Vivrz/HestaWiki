@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+build/
+
+# Environment
+.env
+.env.*.local
+
+# Uploads
+uploads/
+
+# Misc
+.DS_Store
+*.log

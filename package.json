@@ -1,0 +1,51 @@
+{
+  "name": "chatbot-v1.0",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.7.4",
+    "@langchain/community": "^0.3.45",
+    "@langchain/core": "^0.3.60",
+    "@prisma/client": "^6.3.0",
+    "autoprefixer": "^10.5.0",
+    "cheerio": "^1.0.0",
+    "flowbite": "^2.5.2",
+    "flowbite-react": "^0.10.2",
+    "formidable": "^3.5.2",
+    "langchain": "^0.3.29",
+    "next": "^16.2.4",
+    "next-auth": "5.0.0-beta.31",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.3",
+    "postcss": "^8.5.10",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-icons": "^5.6.0",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/formidable": "^3.4.5",
+    "@types/node": "^22.19.17",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/pg": "^8.11.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "prisma": "^6.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "packageManager": "pnpm@10.30.1"
+}

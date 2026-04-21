@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  accounts      Account[]
+  sessions      Session[]
+  documents     Document[]
+  chatSessions  ChatSession[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  documents Document[]
+
+  @@map("departments")
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  name         String
+  type         String   // "pdf" | "text" | "md" | "url"
+  sourceUrl    String?
+  filePath     String?
+  version      Int      @default(1)
+  isLatest     Boolean  @default(true)
+  status       String   @default("processing") // "processing" | "ready" | "failed"
+  errorMessage String?
+  departmentId String
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  department  Department @relation(fields: [departmentId], references: [id])
+  uploadedBy  User       @relation(fields: [uploadedById], references: [id])
+
+  @@map("documents")
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        @default("New Chat")
+  userId    String
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // "user" | "assistant"
+  content   String
+  sources   Json?
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
