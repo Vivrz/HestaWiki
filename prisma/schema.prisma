@@ -10,13 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  user
+  admin
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("user")
+  role          Role      @default(user)
   createdAt     DateTime  @default(now())
   accounts      Account[]
   sessions      Session[]
