@@ -1,6 +1,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { streamAnswer, getRelevantSources } from "@/lib/langchain/retrieval";
+import {
+  streamAnswer,
+  getRelevantSources,
+  classifyQuery,
+  streamGeneralAnswer,
+  expandAbbreviations,
+} from "@/lib/langchain/retrieval";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
 
@@ -32,6 +38,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  let previousMessages = await prisma.chatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  previousMessages = previousMessages.reverse();
+
   await prisma.chatMessage.create({
     data: {
       sessionId,
@@ -45,13 +58,32 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const sources = await getRelevantSources(message);
-        let fullAnswer = "";
+        // Step 1: Expand abbreviations for better semantic search
+        const expandedQuery = expandAbbreviations(message);
 
-          for await (const token of streamAnswer(message)) {
-          fullAnswer += token;
-          const event = `data: ${JSON.stringify({ token })}\n\n`;
-          controller.enqueue(encoder.encode(event));
+        // Step 2: Classify the expanded query
+        const queryType = await classifyQuery(expandedQuery);
+        const queryTypeEvent = `data: ${JSON.stringify({ queryType })}\n\n`;
+        controller.enqueue(encoder.encode(queryTypeEvent));
+
+        let fullAnswer = "";
+        let sources: Prisma.InputJsonValue = [];
+
+        if (queryType === "general") {
+          // For general queries, use original message
+          for await (const token of streamGeneralAnswer(message, previousMessages)) {
+            fullAnswer += token;
+            const event = `data: ${JSON.stringify({ token })}\n\n`;
+            controller.enqueue(encoder.encode(event));
+          }
+        } else {
+          // For document queries, use expanded query for better retrieval accuracy
+          sources = await getRelevantSources(expandedQuery);
+          for await (const token of streamAnswer(expandedQuery, {}, previousMessages)) {
+            fullAnswer += token;
+            const event = `data: ${JSON.stringify({ token })}\n\n`;
+            controller.enqueue(encoder.encode(event));
+          }
         }
 
         await prisma.chatMessage.create({

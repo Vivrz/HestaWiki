@@ -8,8 +8,7 @@ out/
 build/
 
 # Environment
-.env
-.env.*.local
+.env*
 
 # Uploads
 uploads/
@@ -17,3 +16,5 @@ uploads/
 # Misc
 .DS_Store
 *.log
+# Docs
+Docs

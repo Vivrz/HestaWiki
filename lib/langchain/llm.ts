@@ -1,7 +1,7 @@
-import { ChatOllama } from "@langchain/community/chat_models/ollama";
+import { ChatGroq } from "@langchain/groq";
 
-export const llm = new ChatOllama({
-  model: "llama3.2",
-  baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+export const llm = new ChatGroq({
+  model: process.env.GROQ_MODEL ?? "mixtral-8x7b-32768",
+  apiKey: process.env.GROQ_API_KEY,
   temperature: 0.2,
 });
