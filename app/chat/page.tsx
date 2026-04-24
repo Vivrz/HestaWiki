@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Alert, Button, Spinner } from "flowbite-react";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -33,6 +34,8 @@ interface ChatSession {
 
 export default function ChatPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,6 +46,7 @@ export default function ChatPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,10 +64,6 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
-
   const fetchMessages = useCallback(async (sessionId: string) => {
     setLoadingMessages(true);
     const res = await fetch(`/api/chat/sessions/${sessionId}/messages`);
@@ -79,7 +79,7 @@ export default function ChatPage() {
     fetchMessages(id);
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = useCallback(async () => {
     const res = await fetch("/api/chat/sessions", { method: "POST" });
     if (res.ok) {
       const session = (await res.json()) as ChatSession;
@@ -87,7 +87,35 @@ export default function ChatPage() {
       setActiveSessionId(session.id);
       setMessages([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const initSession = async () => {
+      await fetchSessions();
+      
+      const isNewLogin = searchParams.get("new") === "true";
+      
+      if (isNewLogin) {
+        // Immediately clean up the URL to prevent refresh loops
+        router.replace("/chat");
+        // Start a fresh session
+        handleNewChat();
+      } else {
+        // Resume the most recent session if it exists
+        setSessions((currentSessions) => {
+          if (currentSessions.length > 0 && !activeSessionId) {
+            setActiveSessionId(currentSessions[0].id);
+            fetchMessages(currentSessions[0].id);
+          }
+          return currentSessions;
+        });
+      }
+    };
+    initSession();
+  }, [fetchSessions, handleNewChat, searchParams, activeSessionId, fetchMessages]); // Only run on mount to trigger the initial logic
 
   type SSEEvent = { token?: string; done?: boolean; sources?: Source[]; error?: string };
 
@@ -137,7 +165,26 @@ export default function ChatPage() {
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || !activeSessionId || streaming) return;
+    if (!trimmed || streaming) return;
+
+    let sessionId = activeSessionId;
+
+    // Auto-create session if none active
+    if (!sessionId) {
+      setStreaming(true); // Show loading state while creating session
+      try {
+        const res = await fetch("/api/chat/sessions", { method: "POST" });
+        if (!res.ok) throw new Error("Failed to create session");
+        const newSession = (await res.json()) as ChatSession;
+        setSessions((prev) => [newSession, ...prev]);
+        setActiveSessionId(newSession.id);
+        sessionId = newSession.id;
+      } catch (err) {
+        setError("Failed to initialize chat session");
+        setStreaming(false);
+        return;
+      }
+    }
 
     setMessages((prev) => [
       ...prev,
@@ -152,7 +199,7 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: activeSessionId, message: trimmed }),
+        body: JSON.stringify({ sessionId, message: trimmed }),
       });
 
       if (!res.ok || !res.body) throw new Error("Failed to send message");

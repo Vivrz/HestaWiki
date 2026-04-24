@@ -6,6 +6,7 @@ import {
   classifyQuery,
   streamGeneralAnswer,
   expandAbbreviations,
+  getClarificationRequired,
 } from "@/lib/langchain/retrieval";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
@@ -58,11 +59,34 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
+        // Step 0: Check for ambiguous terms requiring clarification (Generalized)
+        const clarification = getClarificationRequired(message);
+        
+        if (clarification) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ queryType: "general" })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: clarification })}\n\n`));
+          
+          let sources: Prisma.InputJsonValue = [];
+          
+          await prisma.chatMessage.create({
+            data: {
+              sessionId,
+              role: "assistant",
+              content: clarification,
+              sources: sources as unknown as Prisma.InputJsonValue,
+            },
+          });
+          
+          const doneEvent = `data: ${JSON.stringify({ done: true, sources })}\n\n`;
+          controller.enqueue(encoder.encode(doneEvent));
+          return;
+        }
+
         // Step 1: Expand abbreviations for better semantic search
         const expandedQuery = expandAbbreviations(message);
 
-        // Step 2: Classify the expanded query
-        const queryType = await classifyQuery(expandedQuery);
+        // Step 2: Classify the expanded query (Passing history for anti-trickery)
+        const queryType = await classifyQuery(expandedQuery, previousMessages);
         const queryTypeEvent = `data: ${JSON.stringify({ queryType })}\n\n`;
         controller.enqueue(encoder.encode(queryTypeEvent));
 

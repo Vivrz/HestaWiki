@@ -57,7 +57,7 @@ export default function SignInPage() {
             <Button
               color="blue"
               className="w-full rounded-xl"
-              onClick={() => signIn("microsoft-entra-id", { callbackUrl: "/chat" })}
+              onClick={() => signIn("microsoft-entra-id", { callbackUrl: "/chat?new=true" })}
             >
               <svg
                 className="mr-2 h-5 w-5"
