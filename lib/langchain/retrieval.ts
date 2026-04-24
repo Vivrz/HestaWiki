@@ -6,7 +6,7 @@ import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 type MessageNode = { role: string; content: string };
 
 function formatHistory(history: MessageNode[]): BaseMessage[] {
-  return history.map(m => 
+  return history.map(m =>
     m.role === "user" ? new HumanMessage(m.content) : new AIMessage(m.content)
   );
 }
@@ -15,12 +15,17 @@ import { getRetriever, getHybridRetriever, type RetrievalFilter } from "./vector
 
 export type { RetrievalFilter };
 
-const SYSTEM_PROMPT = `You are a helpful and confident enterprise assistant.
+const SYSTEM_PROMPT = `You are a helpful and confident enterprise assistant of Hestabit Technologies .
 Answer questions using ONLY the context below.
 If the answer is not in the context, say you don't have that information.
 Always cite the document name and department your answer comes from.
 If summarizing or referring to previous conversation history, state what was discussed confidently without doubting or apologizing for your past answers.
-
+Crucially, if there are multiple policies or excessive details in the context, filter them and ONLY show the policies or answers that are most important and most semantically aligned to the user's specific query. Keep answers concise and avoid listing edge-cases unless explicitly asked.
+Format your response as a clear, natural message. DO NOT use markdown formatting like **bolding** or bullet points and should only answer using numbering when answering in a instruction format .
+Ambiguity Management : If a query contains a abbreviation like : (ML which stands for Maternity leave or Medical leave then respectfully ask the User to specify which one they are asking about ).
+Strict Rule to follow : If the answer is long or in points format then always use numbering like 1. 2. 3 ... to answer in points 
+Most strict Rule to follow : When you get the retrieved answer then only answer on the basis of the retrieved context ... 
+Also , keep a note of one thing if a user ask something about any other organisation apart of the 
 CONTEXT:
 {context}`;
 
@@ -29,41 +34,24 @@ Answer the user's general queries conversationally, like a simple text message.
 Keep it simple, short, and funny where appropriate.
 DO NOT use bullet points, numbered steps, or markdown formatting like **bolding**.
 Do not give instructions. Just reply in a natural, respectful, and engaging manner.
+If the user asks about sensitive/personal information (like a colleague's salary, HR gossip, or individual employee data), playfully and wittily deflect the question and tell them to ask their respected HR instead.
 If asked about previous conversation or chat history, state confidently what was discussed without second-guessing yourself or apologizing.
 Do not reference any documents or knowledge base.`;
 
 const CLASSIFIER_PROMPT = `You are a query classifier for an enterprise document assistant.
 Classify the user query into one of two categories:
 
-document_query → user is asking about company policies, HR rules,
+document_query → user is asking about general company policies, official HR rules,
 department procedures, WFH rules, leave policy, uploaded documents,
-or anything that requires searching the internal knowledge base.
+or anything that requires searching the internal knowledge base manuals.
 
 general → greetings, general knowledge, coding help, math,
-small talk, or anything that does NOT need internal documents.
+small talk, OR questions about sensitive/personal employee information (like a colleague's salary, gossips, or individual employee data) that should not be in the policy documents.
 
 Reply with ONLY one word: general OR document_query. No explanation.
 
 Query: {query}`;
 
-const OFF_TOPIC_CHECK_PROMPT = `You are helping an enterprise SOP (Standard Operating Procedures) assistant.
-Determine if the user's query is completely off-topic and unrelated to work/company matters.
-
-Off-topic examples: recipes, movies, sports, relationships, personal life, general life hacks, weather, etc.
-Work-related examples: leave policy, WFH rules, company procedures, HR policies, etc.
-
-If off-topic, reply with "off_topic". Otherwise reply with "on_topic". No explanation.
-
-Query: {query}`;
-
-const OFF_TOPIC_RESPONSE_PROMPT = `You are a friendly and witty enterprise SOP assistant. 
-The user asked an off-topic question that's not related to company policies or procedures.
-Give a brief, funny but respectful response redirecting them to your actual purpose.
-Keep it conversational and natural, like a human coworker would respond. ONE or TWO sentences max.
-Make it light-hearted and fun, acknowledging the question but gently redirecting.
-also do not rely in instruction format , just reply user in funny plus respectfull manner and play along with it that's it 
-and dont use ** symbols in the response , keep it as general messages ... 
-User query: {query}`;
 
 // Abbreviation map for enterprise terminology
 const ABBREVIATION_MAP: Record<string, string> = {
@@ -90,11 +78,12 @@ const ABBREVIATION_MAP: Record<string, string> = {
   "Escalation Policy": "Disciplinary escalation workflow",
   "Infrastructure Requirement": "Mandatory employee setup for remote work",
 
-  // Leave Types
+  // Leave TypesMaternity Leave / Medical Leave",
   "CL": "Casual Leave",
   "SL": "Sick Leave / Medical Leave",
   "EL": "Earned Leave",
   "LWP": "Leave Without Pay",
+  "ML": "Maternity Leave / Medical Leave",
   "Comp Off": "Compensatory Leave",
   "Holiday Year": "January 1 – December 31 leave cycle",
   "Sandwich Leave": "Leave counted including weekends between leave days",
@@ -146,39 +135,12 @@ export function expandAbbreviations(query: string): string {
   // Using word boundaries (\b) and case-insensitive matching (gi)
   for (const key of sortedKeys) {
     const regex = new RegExp(`\\b${key}\\b`, "gi");
-    expandedQuery = expandedQuery.replace(regex, ABBREVIATION_MAP[key]);
+    expandedQuery = expandedQuery.replace(regex, (match) => `${match} (${ABBREVIATION_MAP[key]})`);
   }
 
   return expandedQuery;
 }
 
-// Check if query is off-topic using LLM
-async function isOffTopicQuery(query: string): Promise<boolean> {
-  try {
-    const prompt = OFF_TOPIC_CHECK_PROMPT.replace("{query}", query);
-    const message = new HumanMessage(prompt);
-    const response = await llm.invoke([message]);
-    const content = (response.content as string).trim().toLowerCase();
-    return content.includes("off_topic");
-  } catch {
-    return false;
-  }
-}
-
-// Generate natural funny response for off-topic queries using LLM
-async function generateOffTopicResponse(query: string): Promise<string> {
-  try {
-    const prompt = ChatPromptTemplate.fromMessages([
-      ["human", OFF_TOPIC_RESPONSE_PROMPT],
-    ]);
-
-    const formattedPrompt = await prompt.formatMessages({ query });
-    const response = await llm.invoke(formattedPrompt);
-    return (response.content as string).trim();
-  } catch {
-    return "That's a fun question, but I'm here to help with company policies and procedures. What can I help you with regarding work? 😊";
-  }
-}
 
 export async function classifyQuery(
   query: string
@@ -188,7 +150,7 @@ export async function classifyQuery(
     const message = new HumanMessage(classifierPrompt);
     const response = await llm.invoke([message]);
     const content = (response.content as string).trim().toLowerCase();
-    
+
     if (content === "general") {
       return "general";
     }
@@ -209,7 +171,7 @@ export async function* streamGeneralAnswer(
       ["human", "{input}"],
     ]);
 
-    const formattedPrompt = await prompt.formatMessages({ 
+    const formattedPrompt = await prompt.formatMessages({
       input: query,
       chat_history: formatHistory(history),
     });
