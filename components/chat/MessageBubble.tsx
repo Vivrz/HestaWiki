@@ -1,4 +1,3 @@
-import SourceAccordion from "./SourceAccordion";
 
 interface Source {
   docId: string;
@@ -38,10 +37,7 @@ export default function MessageBubble({
         >
           <p className="whitespace-pre-wrap">{content}</p>
         </div>
-        {!isUser && sources && sources.length > 0 && (
-          <SourceAccordion sources={sources} />
-        )}
-      </div>
+        </div>
       {isUser && (
         <div className="ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-200 text-xs font-bold text-slate-700">
           user

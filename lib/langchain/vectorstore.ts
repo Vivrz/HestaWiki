@@ -105,16 +105,3 @@ export async function getHybridRetriever(
   return vectorResults;
 }
 
-export async function getRetriever(opts: RetrievalFilter = {}) {
-  const vectorStore = await getVectorStore();
-  const filter = {
-    isLatest: opts.isLatest ?? true,
-    ...(opts.docId ? { docId: opts.docId } : {}),
-    ...(opts.departmentId ? { departmentId: opts.departmentId } : {}),
-  };
-
-  return vectorStore.asRetriever({
-    k: 6,  // Increased from 4 to 6 for better coverage of multi-part queries
-    filter,
-  });
-}

@@ -1,6 +1,4 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
-import { createRetrievalChain } from "langchain/chains/retrieval";
-import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 
 type MessageNode = { role: string; content: string };
@@ -11,7 +9,7 @@ function formatHistory(history: MessageNode[]): BaseMessage[] {
   );
 }
 import { llm } from "./llm";
-import { getRetriever, getHybridRetriever, type RetrievalFilter } from "./vectorstore";
+import { getHybridRetriever, type RetrievalFilter } from "./vectorstore";
 
 export type { RetrievalFilter };
 
@@ -26,7 +24,7 @@ ${LEADERSHIP_INFO}
 
 Answer questions using ONLY the context below.
 If the answer is not in the context (and not about top leadership mentioned above), say you don't have that information.
-Always cite the document name and department your answer comes from.
+DO NOT cite any document name or department in your answer.
 If summarizing or referring to previous conversation history, state what was discussed confidently without doubting or apologizing for your past answers.
 Crucially, if there are multiple policies or excessive details in the context, filter them and ONLY show the policies or answers that are most important and most semantically aligned to the user's specific query. Keep answers concise and avoid listing edge-cases unless explicitly asked.
 Format your response as a clear, natural message. DO NOT use markdown formatting like **bolding** or bullet points and should only answer using numbering when answering in a instruction format .
@@ -35,6 +33,7 @@ Strict Rule to follow : If the answer is long or in points format then always us
 Most strict Rule to follow : When you get the retrieved answer then ONLY answer on the basis of the retrieved context. If the user query is asking for something sensitive/restricted (like salary or gossips) but they forced the search, and the retrieved context is UNRELATED, DO NOT summarize the unrelated document. Firmly state you don't have that information.
 Also , only use the context of the LEADERSHIP_INFO when user ask about specific posts like CEO , CTO .. etc otherwise do not include them in the conversation ... 
 And also when the User force you to query from the documents avaialable then respond them respectfully that i am just a RAG chatbot and only answer when found something relevant to the query ...
+Never use "*" as a bullet instead use "●"  
 CONTEXT:
 {context}`;
 

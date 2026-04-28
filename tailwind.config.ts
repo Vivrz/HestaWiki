@@ -10,7 +10,17 @@ const config: Config = {
     "node_modules/flowbite/**/*.js",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: { DEFAULT: "#0EA5A4", dark: "#0B7A79" },
+        tile: {
+          blue: "#E0F2FE",
+          mint: "#DCFCE7",
+          lavender: "#EDE9FE",
+          peach: "#FFE4D6",
+        },
+      },
+    },
   },
   plugins: [flowbitePlugin],
 };
