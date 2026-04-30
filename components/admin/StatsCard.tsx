@@ -28,6 +28,14 @@ export default function StatsCard({
       iconWrap: "bg-violet-100 text-violet-700 ring-violet-200",
       accent: "from-violet-500/15 to-fuchsia-500/5",
     },
+    yellow: {
+      iconWrap: "bg-amber-100 text-amber-700 ring-amber-200",
+      accent: "from-amber-500/15 to-orange-500/5",
+    },
+    pink: {
+      iconWrap: "bg-rose-100 text-rose-700 ring-rose-200",
+      accent: "from-rose-500/15 to-pink-500/5",
+    },
   } as const;
 
   const styles = colorClasses[color as keyof typeof colorClasses] ?? colorClasses.blue;

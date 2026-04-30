@@ -78,6 +78,7 @@ interface UserManagementClientProps {
     weeklyActiveUsers: number;
     monthlyActiveUsers: number;
     avgSessionMinutes: number;
+    avgSessionsPerUser: number;
     totalChatsThisMonth: number;
   };
 }
@@ -127,7 +128,7 @@ export default function UserManagementClient({
       </section>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <KpiTile
           label="Weekly Active"
           value={usageStats.weeklyActiveUsers}
@@ -147,7 +148,13 @@ export default function UserManagementClient({
           bg="bg-tile-lavender"
         />
         <KpiTile
-          label="Total Chats (mo)"
+          label="Sessions / User"
+          value={usageStats.avgSessionsPerUser}
+          icon={<HiOutlineChatAlt2 className="h-6 w-6" />}
+          bg="bg-sky-100"
+        />
+        <KpiTile
+          label="Total Chats"
           value={usageStats.totalChatsThisMonth.toLocaleString()}
           icon={<HiOutlineChatAlt2 className="h-6 w-6" />}
           bg="bg-tile-peach"

@@ -8,7 +8,16 @@ import ChatSidebar from "@/components/chat/ChatSidebar";
 import MessageBubble from "@/components/chat/MessageBubble";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import ChatInput from "@/components/chat/ChatInput";
-import { HiLogout, HiShieldCheck, HiMenuAlt2 } from "react-icons/hi";
+import {
+  HiChevronRight,
+  HiClipboardList,
+  HiLogout,
+  HiMenuAlt2,
+  HiShieldCheck,
+  HiTicket,
+  HiUserGroup,
+  HiWifi,
+} from "react-icons/hi";
 
 interface Source {
   docId: string;
@@ -32,8 +41,16 @@ interface ChatSession {
   createdAt: string;
 }
 
+const suggestions = [
+  { label: "What's the leave policy?", icon: HiClipboardList },
+  { label: "How do I raise a ticket?", icon: HiTicket },
+  { label: "Work from home rules", icon: HiWifi },
+  { label: "Maternity leave duration", icon: HiUserGroup },
+];
+
 export default function ChatPage() {
   const { data: session } = useSession();
+  const firstName = session?.user?.name?.split(" ")[0] || "there";
   const searchParams = useSearchParams();
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -220,22 +237,30 @@ export default function ChatPage() {
     }
   };
 
+  const handleSuggestionClick = (value: string) => {
+    setInput(value);
+    const textarea = document.querySelector("textarea");
+    if (textarea instanceof HTMLTextAreaElement) {
+      textarea.focus();
+    }
+  };
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#ecf2fd]">
-      <header className="border-b border-white/60 bg-white px-4 py-3 backdrop-blur-xl">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#F7F6F3] text-[#1C1917]">
+      <header className="border-b border-[#E5E3DC] bg-[#F7F6F3] px-4 py-4 sm:px-6">
         <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSidebar((s) => !s)}
-              className="rounded-xl p-2 hover:bg-slate-100 md:hidden"
+              className="rounded-xl p-2 text-[#6B6560] hover:bg-[#ECEAE4] md:hidden"
             >
               <HiMenuAlt2 className="h-5 w-5" />
             </button>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6B6560]">
                 Chat workspace
               </p>
-              <h1 className="text-lg font-semibold text-slate-950">
+              <h1 className="text-lg font-semibold text-[#1C1917]">
                 Enterprise Chatbot
               </h1>
             </div>
@@ -246,7 +271,7 @@ export default function ChatPage() {
                 color="gray"
                 size="md"
                 href="/admin"
-                className="rounded-xl"
+                className="rounded-xl border border-[#E5E3DC] bg-white text-[#1C1917] hover:bg-[#ECEAE4]"
               >
                 <span className="inline-flex items-center gap-2">
                   <HiShieldCheck className="h-4 w-4" />
@@ -257,7 +282,7 @@ export default function ChatPage() {
             <Button
               color="gray"
               size="md"
-              className="rounded-xl"
+              className="rounded-xl border border-[#E5E3DC] bg-white text-[#1C1917] hover:bg-[#ECEAE4]"
               onClick={() => signOut({ callbackUrl: "/auth/signin" })}
             >
               <span className="inline-flex items-center gap-2">
@@ -271,7 +296,7 @@ export default function ChatPage() {
 
       <div className="mx-auto flex w-full max-w-[1600px] flex-1 overflow-hidden px-4 py-4 sm:px-6">
         <div
-          className={`h-full ${showSidebar ? "absolute inset-y-[76px] left-4 z-20 flex sm:left-6 md:static" : "hidden"} md:flex`}
+          className={`h-full ${showSidebar ? "absolute inset-y-[84px] left-4 z-20 flex sm:left-6 md:static" : "hidden"} md:flex`}
         >
           <ChatSidebar
             sessions={sessions}
@@ -281,31 +306,37 @@ export default function ChatPage() {
           />
         </div>
 
-        <div className="glass-panel flex min-w-0 flex-1 flex-col overflow-hidden ">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[#E5E3DC] bg-white">
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            {!activeSessionId && (
-              <div className="flex h-full flex-col items-center justify-center text-center text-slate-500">
-                <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-sky-100 text-sky-700 ring-1 ring-sky-200">
-                  <svg
-                    className="h-9 w-9"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
+            {messages.length === 0 && (
+              <div className="flex flex-1 flex-col items-center justify-center px-8 pb-24">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#4A4580] text-xl font-semibold text-white">
+                  H
                 </div>
-                <p className="text-2xl font-semibold text-slate-900">
-                  Start a conversation
+                <p className="text-[20px] font-medium tracking-[-0.01em] text-[#1C1917]">
+                  Hello, {firstName}
                 </p>
-                <p className="mt-2 max-w-md text-sm leading-6">
-                  Ask anything about your company knowledge base
+                <p className="mt-1.5 max-w-sm text-center text-[14px] leading-relaxed text-[#6B6560]">
+                  Ask me anything about company policies, HR, or procedures.
                 </p>
+
+                <div className="mt-7 flex flex-wrap justify-center gap-2">
+                  {suggestions.map((suggestion) => {
+                    const Icon = suggestion.icon;
+                    return (
+                      <button
+                        key={suggestion.label}
+                        type="button"
+                        onClick={() => handleSuggestionClick(suggestion.label)}
+                        className="flex cursor-pointer select-none items-center gap-2.5 rounded-2xl border border-[#E5E3DC] bg-white px-4 py-2.5 text-[13px] text-[#1C1917] transition-all duration-[120ms] hover:-translate-y-[1px] hover:border-[#4A4580] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                      >
+                        <Icon className="h-4 w-4 text-[#6B6560]" />
+                        <span>{suggestion.label}</span>
+                        <HiChevronRight className="h-3.5 w-3.5 text-[#6B6560]" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -321,13 +352,18 @@ export default function ChatPage() {
                 role={msg.role}
                 content={msg.content}
                 sources={msg.sources}
+                createdAt={msg.createdAt}
               />
             ))}
 
             {streaming && (
               <>
                 {streamingContent ? (
-                  <MessageBubble role="assistant" content={streamingContent} />
+                  <MessageBubble
+                    role="assistant"
+                    content={streamingContent}
+                    createdAt={new Date().toISOString()}
+                  />
                 ) : (
                   <TypingIndicator />
                 )}

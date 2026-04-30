@@ -7,6 +7,7 @@ import {
   streamGeneralAnswer,
   expandAbbreviations,
   getClarificationRequired,
+  containsKnownAbbreviation,
 } from "@/lib/langchain/retrieval";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
@@ -61,13 +62,13 @@ export async function POST(req: NextRequest) {
       try {
         // Step 0: Check for ambiguous terms requiring clarification (Generalized)
         const clarification = getClarificationRequired(message);
-        
+
         if (clarification) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ queryType: "general" })}\n\n`));
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: clarification })}\n\n`));
-          
+
           let sources: Prisma.InputJsonValue = [];
-          
+
           await prisma.chatMessage.create({
             data: {
               sessionId,
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
               sources: sources as unknown as Prisma.InputJsonValue,
             },
           });
-          
+
           const doneEvent = `data: ${JSON.stringify({ done: true, sources })}\n\n`;
           controller.enqueue(encoder.encode(doneEvent));
           return;
@@ -85,8 +86,15 @@ export async function POST(req: NextRequest) {
         // Step 1: Expand abbreviations for better semantic search
         const expandedQuery = expandAbbreviations(message);
 
+        // Known enterprise abbreviations should always route to document retrieval.
+        const forceDocumentQuery =
+          /\bwfh\b|work\s*from\s*home/i.test(message) ||
+          containsKnownAbbreviation(message);
+
         // Step 2: Classify the expanded query (Passing history for anti-trickery)
-        const queryType = await classifyQuery(expandedQuery, previousMessages);
+        const queryType = forceDocumentQuery
+          ? "document_query"
+          : await classifyQuery(expandedQuery, previousMessages);
         const queryTypeEvent = `data: ${JSON.stringify({ queryType })}\n\n`;
         controller.enqueue(encoder.encode(queryTypeEvent));
 
@@ -101,8 +109,8 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(event));
           }
         } else {
-          // For document queries, use expanded query for better retrieval accuracy
-          sources = await getRelevantSources(expandedQuery);
+          // For document_query and website_query, use expanded query for better retrieval accuracy
+          sources = (await getRelevantSources(expandedQuery)) as unknown as Prisma.InputJsonValue;
           for await (const token of streamAnswer(expandedQuery, {}, previousMessages)) {
             fullAnswer += token;
             const event = `data: ${JSON.stringify({ token })}\n\n`;

@@ -24,13 +24,13 @@ export default function ChatSidebar({
   onNewChat,
 }: ChatSidebarProps) {
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col border-r border-white/60 bg-[#1d428a] backdrop-blur-xl">
-      <div className="border-b border-slate-200/80 p-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+    <div className="flex h-full w-72 shrink-0 flex-col rounded-[24px] border border-[#E5E3DC] bg-[#EFEDE8]">
+      <div className="border-b border-[#E5E3DC] p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#6B6560]">
           Conversations
         </p>
         <Button
-          className="w-full border-none bg-[#e56043]"
+          className="w-full rounded-[12px] border-none bg-[#4A4580] text-white hover:bg-[#3A3570]"
           onClick={onNewChat}
         >
           <span className="flex items-center justify-center gap-2">
@@ -46,12 +46,12 @@ export default function ChatSidebar({
             onClick={() => onSelectSession(session.id)}
             className={`w-full rounded-2xl px-4 py-3 text-left text-sm transition ${
               session.id === activeSessionId
-                ? "bg-sky-100 text-sky-950 ring-1 ring-sky-200 shadow-[0_20px_50px_-30px_rgba(14,165,233,0.45)]"
-                : "text-white hover:bg-sky-50/80 hover:text-slate-900"
+                ? "bg-[#E8E5DE] text-[#1C1917]"
+                : "text-[#1C1917] hover:bg-[#ECEAE4]"
             }`}
           >
             <p className="truncate font-medium">{session.title}</p>
-            <p className={`mt-1 text-xs ${session.id === activeSessionId ? "text-sky-700" : "text-slate-400"}`}>
+            <p className={`mt-1 text-xs ${session.id === activeSessionId ? "text-[#4A4580]" : "text-[#6B6560]"}`}>
               {formatDistanceToNow(new Date(session.createdAt))}
             </p>
           </button>

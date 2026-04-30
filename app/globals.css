@@ -6,10 +6,22 @@
   :root {
     --font-sans: ui-sans-serif, system-ui, sans-serif;
     --font-display: ui-sans-serif, system-ui, sans-serif;
+    --bg-page: #F7F6F3;
+    --bg-sidebar: #EFEDE8;
+    --accent: #4A4580;
+    --border: #E5E3DC;
+    --text-primary: #1C1917;
+    --text-secondary: #6B6560;
     --app-bg:
       radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
       radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 28%),
       linear-gradient(180deg, #f6fbff 0%, #eef4fb 48%, #f8fafc 100%);
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
   }
 
   * {
@@ -62,4 +74,15 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

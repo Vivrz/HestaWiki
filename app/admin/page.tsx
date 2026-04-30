@@ -14,40 +14,84 @@ import {
   HiDocumentText,
   HiOfficeBuilding,
   HiUsers,
+  HiOutlineClock,
+  HiOutlineChatAlt2,
 } from "react-icons/hi";
 
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const [totalDocuments, totalDepartments, totalUsers, docsByDept, lastUploads] =
-    await Promise.all([
-      prisma.document.count({ where: { status: "ready", isLatest: true } }),
-      prisma.department.count(),
-      prisma.user.count(),
-      prisma.department.findMany({
-        include: {
-          _count: {
-            select: { documents: { where: { isLatest: true } } },
-          },
-        },
-        orderBy: { name: "asc" },
-      }),
-      prisma.document.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        include: {
-          department: true,
-          uploadedBy: { select: { name: true } },
-        },
-      }),
-    ]);
+  const [
+    totalDocuments,
+    totalDepartments,
+    totalUsers,
+    docsByDept,
+    lastUploads,
+    allSessions
+  ] = await Promise.all([
+    prisma.document.count({ where: { status: "ready", isLatest: true } }),
+    prisma.department.count(),
+    prisma.user.count(),
+    prisma.department.findMany({
+      include: {
+        _count: { select: { documents: { where: { isLatest: true } } } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.document.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: { department: true, uploadedBy: { select: { name: true } } },
+    }),
+    prisma.chatSession.findMany({
+      include: { messages: { orderBy: { createdAt: "asc" } } }
+    }),
+  ]);
 
-  return { totalDocuments, totalDepartments, totalUsers, docsByDept, lastUploads };
+  let totalSessionMinutes = 0;
+  let sessionsWithDuration = 0;
+
+  allSessions.forEach(session => {
+    if (session.messages.length > 1) {
+      const start = session.createdAt.getTime();
+      const end = session.messages[session.messages.length - 1].createdAt.getTime();
+      const diffMinutes = (end - start) / 60000;
+      if (diffMinutes > 0 && diffMinutes < 60) {
+        totalSessionMinutes += diffMinutes;
+        sessionsWithDuration++;
+      }
+    }
+  });
+
+  const avgSessionMinutes = sessionsWithDuration > 0
+    ? parseFloat((totalSessionMinutes / sessionsWithDuration).toFixed(1))
+    : 0;
+
+  const avgSessionsPerUser = totalUsers > 0
+    ? parseFloat((allSessions.length / totalUsers).toFixed(1))
+    : 0;
+
+  return {
+    totalDocuments,
+    totalDepartments,
+    totalUsers,
+    docsByDept,
+    lastUploads,
+    avgSessionMinutes,
+    avgSessionsPerUser
+  };
 }
 
 export default async function AdminDashboard() {
-  const { totalDocuments, totalDepartments, totalUsers, docsByDept, lastUploads } =
-    await getStats();
+  const {
+    totalDocuments,
+    totalDepartments,
+    totalUsers,
+    docsByDept,
+    lastUploads,
+    avgSessionMinutes,
+    avgSessionsPerUser
+  } = await getStats();
 
   return (
     <div className="space-y-8">
@@ -66,7 +110,7 @@ export default async function AdminDashboard() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Ready Documents"
           value={totalDocuments}
@@ -84,6 +128,18 @@ export default async function AdminDashboard() {
           value={totalUsers}
           icon={<HiUsers className="h-6 w-6" />}
           color="purple"
+        />
+        <StatsCard
+          title="Avg Session Time"
+          value={`${avgSessionMinutes}m`}
+          icon={<HiOutlineClock className="h-6 w-6" />}
+          color="yellow"
+        />
+        <StatsCard
+          title="Avg Sessions/User"
+          value={avgSessionsPerUser}
+          icon={<HiOutlineChatAlt2 className="h-6 w-6" />}
+          color="pink"
         />
       </div>
 

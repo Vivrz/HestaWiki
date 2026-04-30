@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import UserManagementClient from "@/components/admin/UserManagementClient";
-import { AdminUser, ChatSession, ChatMessage, UsagePoint } from "@/components/admin/types";
+import { AdminUser, ChatSession, UsagePoint } from "@/components/admin/types";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +96,7 @@ export default async function UsersPage() {
       name: u.name || "Unknown User",
       email: u.email,
       role: role as any,
-      department: "General", // Prisma schema doesn't link User to Department yet
+      department: "General", 
       avatarUrl: u.image || undefined,
       lastActive,
       totalSessions: u.chatSessions.length,
@@ -105,24 +105,24 @@ export default async function UsersPage() {
     };
   });
 
+  const totalSessionsCount = usersData.reduce((acc, u) => acc + u.chatSessions.length, 0);
+  const avgSessionsPerUser = usersData.length > 0 
+    ? parseFloat((totalSessionsCount / usersData.length).toFixed(1))
+    : 0;
+
   const avgSessionMinutes = sessionsWithDuration > 0 
     ? parseFloat((totalSessionMinutes / sessionsWithDuration).toFixed(1)) 
     : 0;
 
-  // For charts, we could build dynamic data or use the existing mock structure.
   // Building dynamic weekly chart (last 7 days):
   const weeklyUsage: UsagePoint[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const label = d.toLocaleDateString("en-US", { weekday: "short" });
-    
-    // Calculate for this specific day
     const startOfDay = new Date(d.setHours(0, 0, 0, 0));
     const endOfDay = new Date(d.setHours(23, 59, 59, 999));
-    
     let dailyChats = 0;
     let dailyUsers = new Set<string>();
-    
     usersData.forEach(u => {
       let activeToday = false;
       u.chatSessions.forEach(s => {
@@ -133,7 +133,6 @@ export default async function UsersPage() {
       });
       if (activeToday) dailyUsers.add(u.id);
     });
-
     weeklyUsage.push({ label, chats: dailyChats, users: dailyUsers.size });
   }
 
@@ -142,13 +141,10 @@ export default async function UsersPage() {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const label = d.toLocaleDateString("en-US", { month: "short" });
-    
     const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
     const nextMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 1);
-    
     let monthChats = 0;
     let monthUsers = new Set<string>();
-    
     usersData.forEach(u => {
       let active = false;
       u.chatSessions.forEach(s => {
@@ -159,7 +155,6 @@ export default async function UsersPage() {
       });
       if (active) monthUsers.add(u.id);
     });
-
     monthlyUsage.push({ label, chats: monthChats, users: monthUsers.size });
   }
 
@@ -172,6 +167,7 @@ export default async function UsersPage() {
         weeklyActiveUsers: weeklyActiveUsersSet.size,
         monthlyActiveUsers: monthlyActiveUsersSet.size,
         avgSessionMinutes,
+        avgSessionsPerUser,
         totalChatsThisMonth,
       }}
     />

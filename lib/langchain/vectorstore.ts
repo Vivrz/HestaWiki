@@ -1,5 +1,6 @@
 import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";
 import { Document } from "@langchain/core/documents";
+import { Prisma } from "@prisma/client"; // UPDATED: needed for Prisma.sql and Prisma.empty
 import { embeddings } from "./embeddings";
 import { prisma } from "../prisma";
 
@@ -31,8 +32,8 @@ export async function performKeywordSearch(
   filter?: RetrievalFilter
 ): Promise<Document[]> {
   try {
-    // Raw SQL query using PostgreSQL full-text search
-    const results = await prisma.$queryRaw`
+    // Raw SQL query using PostgreSQL full-text search with safe Prisma.sql formatting
+    const results = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: Record<string, unknown>; rank: number }>>`
       SELECT 
         id,
         content,
@@ -41,12 +42,21 @@ export async function performKeywordSearch(
       FROM langchain_pg_embedding
       WHERE 
         plainto_tsquery('english', ${query}) @@ to_tsvector('english', content)
-        AND (metadata->>'isLatest')::boolean = ${filter?.isLatest ?? true}
-        ${filter?.docId ? `AND metadata->>'docId' = ${filter.docId}` : ""}
-        ${filter?.departmentId ? `AND metadata->>'departmentId' = ${filter.departmentId}` : ""}
+        AND (
+          (
+            metadata->>'source' = 'website'
+            AND (metadata->>'isLatest' IS NULL OR (metadata->>'isLatest')::boolean = true)
+          )
+          OR (
+            (metadata->>'source' = 'document')
+            AND (metadata->>'isLatest')::boolean = ${filter?.isLatest ?? true}
+            ${filter?.docId ? Prisma.sql`AND metadata->>'docId' = ${filter.docId}` : Prisma.empty}
+            ${filter?.departmentId ? Prisma.sql`AND metadata->>'departmentId' = ${filter.departmentId}` : Prisma.empty}
+          )
+        )
       ORDER BY rank DESC
       LIMIT ${k}
-    ` as Array<{ id: string; content: string; metadata: Record<string, unknown>; rank: number }>;
+    `;
 
     return results.map(
       (result) =>
@@ -67,26 +77,44 @@ export async function getHybridRetriever(
   opts: RetrievalFilter = {}
 ) {
   const vectorStore = await getVectorStore();
-  const filter = {
+
+  // HR filter
+  const hrFilter = {
+    source: "document",
     isLatest: opts.isLatest ?? true,
     ...(opts.docId ? { docId: opts.docId } : {}),
     ...(opts.departmentId ? { departmentId: opts.departmentId } : {}),
   };
 
+  // Website filter
+  const webFilter = {
+    source: "website",
+  };
+
   // For short queries, use hybrid search
   const isShortQuery = query.split(/\s+/).length <= 3;
 
-  const vectorResults = await vectorStore.similaritySearch(query, 6, filter);
+  // Search BOTH HR documents and website chunks
+  const [hrResults, webResults] = await Promise.all([
+    vectorStore.similaritySearchWithScore(query, 6, hrFilter),
+    vectorStore.similaritySearchWithScore(query, 6, webFilter),
+  ]);
+
+  // Combine and sort by score (lower distance is better)
+  const combinedVectors = [...hrResults, ...webResults]
+    .sort((a, b) => a[1] - b[1]);
+
+  const allVectors = combinedVectors.map(([doc]) => doc);
 
   if (isShortQuery) {
     // Also perform keyword search for short queries
-    const keywordResults = await performKeywordSearch(query, 6, filter);
+    const keywordResults = await performKeywordSearch(query, 6, opts);
 
     // Combine and deduplicate results
     const combined = new Map<string, Document>();
 
     // Add vector results (semantic relevance)
-    vectorResults.forEach((doc, idx) => {
+    allVectors.forEach((doc, idx) => {
       const key = doc.pageContent.slice(0, 100);
       combined.set(key, doc);
     });
@@ -102,6 +130,6 @@ export async function getHybridRetriever(
     return Array.from(combined.values()).slice(0, 6);
   }
 
-  return vectorResults;
+  return allVectors.slice(0, 6);
 }
 

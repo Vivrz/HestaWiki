@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [totalDocuments, totalDepartments, totalUsers, docsByDept, lastUploads] =
+  const [totalDocuments, totalDepartments, totalUsers, docsByDept, lastUploads, allSessions] =
     await Promise.all([
       prisma.document.count({ where: { status: "ready", isLatest: true } }),
       prisma.department.count(),
@@ -24,7 +24,33 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         include: { department: true, uploadedBy: { select: { name: true } } },
       }),
+      prisma.chatSession.findMany({
+        include: { messages: { orderBy: { createdAt: "asc" } } }
+      }),
     ]);
+
+  let totalSessionMinutes = 0;
+  let sessionsWithDuration = 0;
+
+  allSessions.forEach(session => {
+    if (session.messages.length > 1) {
+      const start = session.createdAt.getTime();
+      const end = session.messages[session.messages.length - 1].createdAt.getTime();
+      const diffMinutes = (end - start) / 60000;
+      if (diffMinutes > 0 && diffMinutes < 60) {
+        totalSessionMinutes += diffMinutes;
+        sessionsWithDuration++;
+      }
+    }
+  });
+
+  const avgSessionMinutes = sessionsWithDuration > 0 
+    ? parseFloat((totalSessionMinutes / sessionsWithDuration).toFixed(1)) 
+    : 0;
+  
+  const avgSessionsPerUser = totalUsers > 0 
+    ? parseFloat((allSessions.length / totalUsers).toFixed(1))
+    : 0;
 
   return NextResponse.json({
     totalDocuments,
@@ -32,5 +58,7 @@ export async function GET() {
     totalUsers,
     docsByDept,
     lastUploads,
+    avgSessionMinutes,
+    avgSessionsPerUser
   });
 }

@@ -11,6 +11,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "DM Sans", "system-ui", "sans-serif"],
+      },
       colors: {
         brand: { DEFAULT: "#0EA5A4", dark: "#0B7A79" },
         tile: {
