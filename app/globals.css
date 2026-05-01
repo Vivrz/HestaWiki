@@ -8,14 +8,35 @@
     --font-display: ui-sans-serif, system-ui, sans-serif;
     --bg-page: #F7F6F3;
     --bg-sidebar: #EFEDE8;
-    --accent: #4A4580;
+    --accent: #6B63D4;
     --border: #E5E3DC;
-    --text-primary: #1C1917;
-    --text-secondary: #6B6560;
+    
+    /* LIGHT MODE variables for toggle */
+    --chat-bg: #f0eeeb;
+    --sidebar-bg: #e8e6e3;
+    --header-bg: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5855;
+    --border-color: #d8d6d2;
+    --hover-bg: #dddbd7;
+    --input-bg: #ffffff;
+
     --app-bg:
       radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
       radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 28%),
       linear-gradient(180deg, #f6fbff 0%, #eef4fb 48%, #f8fafc 100%);
+  }
+
+  :root.dark {
+    --chat-bg: #1f1f1e;
+    --sidebar-bg: #1d1d1c;
+    --header-bg: #1a1a19;
+    --text-primary: #e8e6e3;
+    --text-secondary: #9a9895;
+    --border-color: #2e2e2d;
+    --hover-bg: #2a2a29;
+    --input-bg: #2c2c2a;
+    --accent: #6B63D4;
   }
 
   *,

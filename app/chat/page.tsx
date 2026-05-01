@@ -62,6 +62,24 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [isDark, setIsDark] = useState(false);
+  const [greeting, setGreeting] = useState("Welcome back,");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good morning,");
+    else if (hour < 17) setGreeting("Good afternoon,");
+    else setGreeting("Good evening,");
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [isDark]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
@@ -246,8 +264,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#F7F6F3] text-[#1C1917]">
-      <header className="border-b border-[#E5E3DC] bg-[#F7F6F3] px-4 py-4 sm:px-6">
+    <div className="flex h-screen flex-col overflow-hidden transition-colors duration-200" style={{ background: 'var(--chat-bg)', color: 'var(--text-primary)' }}>
+      <header className="border-b px-4 py-4 sm:px-6 transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
         <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -266,12 +284,41 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDark(!isDark)}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)',
+                marginRight: '8px',
+              }}
+            >
+              {isDark ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="4"/>
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41 M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              )}
+            </button>
             {session?.user.role === "admin" && (
               <Button
                 color="gray"
                 size="md"
                 href="/admin"
-                className="rounded-xl border border-[#E5E3DC] bg-white text-[#1C1917] hover:bg-[#ECEAE4]"
+                className="rounded-xl border transition-colors"
+                style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               >
                 <span className="inline-flex items-center gap-2">
                   <HiShieldCheck className="h-4 w-4" />
@@ -282,7 +329,8 @@ export default function ChatPage() {
             <Button
               color="gray"
               size="md"
-              className="rounded-xl border border-[#E5E3DC] bg-white text-[#1C1917] hover:bg-[#ECEAE4]"
+              className="rounded-xl border transition-colors"
+              style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
               onClick={() => signOut({ callbackUrl: "/auth/signin" })}
             >
               <span className="inline-flex items-center gap-2">
@@ -294,101 +342,155 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1600px] flex-1 overflow-hidden px-4 py-4 sm:px-6">
-        <div
-          className={`h-full ${showSidebar ? "absolute inset-y-[84px] left-4 z-20 flex sm:left-6 md:static" : "hidden"} md:flex`}
-        >
+      <div className="mx-auto flex w-full max-w-[1600px] flex-1 justify-center overflow-hidden px-4 py-4 sm:px-6 gap-4">
+        {/* Sidebar wrapper — animates width */}
+        <div style={{
+          width: showSidebar ? '288px' : '0px',
+          minWidth: showSidebar ? '288px' : '0px',
+          overflow: 'hidden',
+          transition: 'width 250ms ease-in-out, min-width 250ms ease-in-out',
+          flexShrink: 0,
+        }} className="hidden md:block">
           <ChatSidebar
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
+            onToggle={() => setShowSidebar(false)}
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[#E5E3DC] bg-white">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            {messages.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center px-8 pb-24">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#4A4580] text-xl font-semibold text-white">
-                  H
-                </div>
-                <p className="text-[20px] font-medium tracking-[-0.01em] text-[#1C1917]">
-                  Hello, {firstName}
-                </p>
-                <p className="mt-1.5 max-w-sm text-center text-[14px] leading-relaxed text-[#6B6560]">
-                  Ask me anything about company policies, HR, or procedures.
-                </p>
-
-                <div className="mt-7 flex flex-wrap justify-center gap-2">
-                  {suggestions.map((suggestion) => {
-                    const Icon = suggestion.icon;
-                    return (
-                      <button
-                        key={suggestion.label}
-                        type="button"
-                        onClick={() => handleSuggestionClick(suggestion.label)}
-                        className="flex cursor-pointer select-none items-center gap-2.5 rounded-2xl border border-[#E5E3DC] bg-white px-4 py-2.5 text-[13px] text-[#1C1917] transition-all duration-[120ms] hover:-translate-y-[1px] hover:border-[#4A4580] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
-                      >
-                        <Icon className="h-4 w-4 text-[#6B6560]" />
-                        <span>{suggestion.label}</span>
-                        <HiChevronRight className="h-3.5 w-3.5 text-[#6B6560]" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {loadingMessages && (
-              <div className="flex justify-center p-4">
-                <Spinner />
-              </div>
-            )}
-
-            {messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                role={msg.role}
-                content={msg.content}
-                sources={msg.sources}
-                createdAt={msg.createdAt}
-              />
-            ))}
-
-            {streaming && (
-              <>
-                {streamingContent ? (
-                  <MessageBubble
-                    role="assistant"
-                    content={streamingContent}
-                    createdAt={new Date().toISOString()}
-                  />
-                ) : (
-                  <TypingIndicator />
-                )}
-              </>
-            )}
-
-            {error && (
-              <Alert
-                color="failure"
-                className="mx-4"
-                onDismiss={() => setError("")}
-              >
-                {error}
-              </Alert>
-            )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSend={handleSend}
-            disabled={streaming}
+        {/* Mobile Sidebar overlay */}
+        <div className={`h-full md:hidden ${showSidebar ? "absolute inset-y-[84px] left-4 z-20 flex sm:left-6" : "hidden"}`}>
+          <ChatSidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={handleSelectSession}
+            onNewChat={handleNewChat}
+            onToggle={() => setShowSidebar(false)}
           />
+        </div>
+
+        {/* Main content */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border transition-colors duration-200 relative" style={{ background: 'var(--chat-bg)', borderColor: 'var(--border-color)' }}>
+          {/* Floating re-open button — only when sidebar is closed */}
+          {!showSidebar && (
+            <button
+              className="hidden md:flex"
+              onClick={() => setShowSidebar(true)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                left: '16px',
+                zIndex: 50,
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--sidebar-bg)',
+                cursor: 'pointer',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-secondary)',
+              }}
+              title="Open sidebar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="1.5">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+          )}
+          {messages.length === 0 ? (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col justify-center">
+              <div className="flex flex-col items-center w-full max-w-3xl mx-auto pb-12">
+                <div className="flex items-center justify-center gap-4 mb-8">
+                  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path opacity="0.3" d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" fill="url(#ai_sparkle_glow)" />
+                    <path d="M12 22C12 22 12 14.5 7 12C12 9.5 12 2 12 2C12 2 12 9.5 17 12C12 14.5 12 22 12 22Z" fill="var(--accent)"/>
+                    <path d="M19.5 10C19.5 10 19.5 7.5 17.5 6.5C19.5 5.5 19.5 3 19.5 3C19.5 3 19.5 5.5 21.5 6.5C19.5 7.5 19.5 10 19.5 10Z" fill="var(--accent)"/>
+                    <path d="M5.5 19C5.5 19 5.5 17 4 16C5.5 15 5.5 13 5.5 13C5.5 13 5.5 15 7 16C5.5 17 5.5 19 5.5 19Z" fill="var(--accent)"/>
+                    <defs>
+                      <radialGradient id="ai_sparkle_glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 12) rotate(90) scale(9)">
+                        <stop stopColor="var(--accent)"/>
+                        <stop offset="1" stopColor="var(--accent)" stopOpacity="0"/>
+                      </radialGradient>
+                    </defs>
+                  </svg>
+                  <h1 style={{ fontFamily: "ui-serif, Georgia, serif", fontSize: "32px", fontWeight: "400", letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+                    {greeting} {firstName}
+                  </h1>
+                </div>
+                <div className="w-full">
+                  <ChatInput
+                    value={input}
+                    onChange={setInput}
+                    onSend={handleSend}
+                    disabled={streaming}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                {loadingMessages && (
+                  <div className="flex justify-center p-4">
+                    <Spinner />
+                  </div>
+                )}
+
+                {messages.map((msg) => (
+                  <MessageBubble
+                    key={msg.id}
+                    role={msg.role}
+                    content={msg.content}
+                    sources={msg.sources}
+                    createdAt={msg.createdAt}
+                  />
+                ))}
+
+                {streaming && (
+                  <>
+                    {streamingContent ? (
+                      <MessageBubble
+                        role="assistant"
+                        content={streamingContent}
+                        createdAt={new Date().toISOString()}
+                      />
+                    ) : (
+                      <TypingIndicator />
+                    )}
+                  </>
+                )}
+
+                {error && (
+                  <Alert
+                    color="failure"
+                    className="mx-4"
+                    onDismiss={() => setError("")}
+                  >
+                    {error}
+                  </Alert>
+                )}
+
+                <div ref={bottomRef} />
+              </div>
+              
+              <div className="border-t p-4 transition-colors duration-200 shrink-0" style={{ borderColor: 'var(--border-color)', background: 'var(--chat-bg)' }}>
+                <div className="w-full max-w-5xl mx-auto">
+                  <ChatInput
+                    value={input}
+                    onChange={setInput}
+                    onSend={handleSend}
+                    disabled={streaming}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

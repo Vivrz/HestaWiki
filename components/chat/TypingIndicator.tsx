@@ -1,17 +1,22 @@
 export default function TypingIndicator() {
   return (
-    <div className="flex items-center gap-2 px-4 py-2">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 text-xs font-bold text-white">
-        AI
+    <div className="mb-5 flex items-start gap-3" style={{ animation: "msgIn 150ms ease-out both" }}>
+      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
+        H
       </div>
-      <div className="ml-2 flex gap-1 rounded-full border border-white/60 bg-white/85 px-4 py-3 shadow-sm">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="inline-block h-2 w-2 rounded-full bg-slate-400 animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
-        ))}
+      <div className="flex flex-col">
+        <div className="mb-1.5 flex items-baseline gap-2">
+          <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
+        </div>
+        <div className="flex gap-1.5 rounded-[4px_18px_18px_18px] border px-[18px] py-[16px] transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="inline-block h-2 w-2 rounded-full animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s`, background: 'var(--text-secondary)' }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

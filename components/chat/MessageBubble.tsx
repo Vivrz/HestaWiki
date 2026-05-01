@@ -53,7 +53,7 @@ export default function MessageBubble({
         return (
           <ol key={`ol-${index}`} className="my-2 list-decimal space-y-2 pl-5">
             {lines.map((line, lineIndex) => (
-              <li key={`ol-line-${lineIndex}`} className="text-[14px] leading-relaxed text-[#1C1917]">
+              <li key={`ol-line-${lineIndex}`} className="text-[14px] leading-relaxed transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>
                 {line.replace(/^\d+\.\s+/, "")}
               </li>
             ))}
@@ -65,7 +65,7 @@ export default function MessageBubble({
         return (
           <ul key={`ul-${index}`} className="my-2 list-disc space-y-2 pl-5">
             {lines.map((line, lineIndex) => (
-              <li key={`ul-line-${lineIndex}`} className="text-[14px] leading-relaxed text-[#1C1917]">
+              <li key={`ul-line-${lineIndex}`} className="text-[14px] leading-relaxed transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>
                 {line.replace(/^[-*]\s+/, "")}
               </li>
             ))}
@@ -98,26 +98,26 @@ export default function MessageBubble({
       {isUser ? (
         <>
           <div className="flex max-w-[65%] flex-col items-end">
-            <div className="rounded-[18px_18px_4px_18px] bg-[#4A4580] px-4 py-[11px] text-[14px] leading-relaxed text-white">
+            <div className="rounded-[18px_18px_4px_18px] px-4 py-[11px] text-[14px] leading-relaxed text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
               <p className="whitespace-pre-wrap">{content}</p>
             </div>
-            {timestamp && <p className="mr-9 mt-1 text-right text-[11px] text-[#6B6560]">{timestamp}</p>}
+            {timestamp && <p className="mr-9 mt-1 text-right text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
           </div>
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#ECEAE4] text-[11px] font-medium text-[#4A4580]">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium transition-colors duration-200" style={{ background: 'var(--hover-bg)', color: 'var(--accent)' }}>
             {userInitials}
           </div>
         </>
       ) : (
         <>
-          <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#4A4580] text-[11px] font-semibold text-white">
+          <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
             H
           </div>
           <div className="flex flex-col">
             <div className="mb-1.5 flex items-baseline gap-2">
-              <p className="text-[13px] font-medium text-[#1C1917]">Hestabit Assistant</p>
-              {timestamp && <p className="text-[11px] text-[#6B6560]">{timestamp}</p>}
+              <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
+              {timestamp && <p className="text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
             </div>
-            <div className="max-w-[78%] rounded-[4px_18px_18px_18px] border border-[#E5E3DC] bg-white px-[18px] py-[14px] text-[14px] leading-[1.75] text-[#1C1917]">
+            <div className="max-w-[78%] rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
               {renderAssistantContent()}
             </div>
 
