@@ -21,8 +21,8 @@ const HR_SPLITTER = new RecursiveCharacterTextSplitter({
 });
 
 const WEB_SPLITTER = new RecursiveCharacterTextSplitter({
-  chunkSize: 800,
-  chunkOverlap: 120,
+  chunkSize: 1200,
+  chunkOverlap: 200,
   separators: ["\n\n", "\n", ". ", " "],
 });
 

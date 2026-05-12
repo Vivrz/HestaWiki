@@ -16,5 +16,21 @@ uploads/
 # Misc
 .DS_Store
 *.log
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Screenshots
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Temporary files
+source
+.claude
+.codex
+
 # Docs
 Docs

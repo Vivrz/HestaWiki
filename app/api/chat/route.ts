@@ -109,9 +109,17 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(event));
           }
         } else {
+          // Route retrieval to the correct source so HR/document chunks don't
+          // leak into website answers (and vice versa). The classifier already
+          // picked the right bucket; we just thread that decision through.
+          const retrievalOpts =
+            queryType === "website_query"
+              ? { sourceType: "website" as const }
+              : { sourceType: "document" as const };
+
           // For document_query and website_query, use expanded query for better retrieval accuracy
-          sources = (await getRelevantSources(expandedQuery)) as unknown as Prisma.InputJsonValue;
-          for await (const token of streamAnswer(expandedQuery, {}, previousMessages)) {
+          sources = (await getRelevantSources(expandedQuery, retrievalOpts)) as unknown as Prisma.InputJsonValue;
+          for await (const token of streamAnswer(expandedQuery, retrievalOpts, previousMessages)) {
             fullAnswer += token;
             const event = `data: ${JSON.stringify({ token })}\n\n`;
             controller.enqueue(encoder.encode(event));

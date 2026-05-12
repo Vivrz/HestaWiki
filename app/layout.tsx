@@ -28,8 +28,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${geist.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('chat-dark');
+                } else {
+                  document.documentElement.classList.remove('chat-dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
         {children}
       </body>
     </html>

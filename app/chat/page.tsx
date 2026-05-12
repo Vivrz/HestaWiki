@@ -41,13 +41,6 @@ interface ChatSession {
   createdAt: string;
 }
 
-const suggestions = [
-  { label: "What's the leave policy?", icon: HiClipboardList },
-  { label: "How do I raise a ticket?", icon: HiTicket },
-  { label: "Work from home rules", icon: HiWifi },
-  { label: "Maternity leave duration", icon: HiUserGroup },
-];
-
 export default function ChatPage() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "there";
@@ -73,13 +66,23 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    if (document.documentElement.classList.contains("chat-dark")) {
+      setIsDark(true);
     }
-  }, [isDark]);
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove("chat-dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add("chat-dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
@@ -285,7 +288,7 @@ export default function ChatPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsDark(!isDark)}
+              onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               style={{
                 width: '36px',
