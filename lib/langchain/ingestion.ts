@@ -6,10 +6,6 @@ import { Document } from "@langchain/core/documents";
 import { prisma } from "@/lib/prisma";
 import { getVectorStore } from "./vectorstore";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
-
 const firecrawl = new FirecrawlApp({
   apiKey: process.env.FIRECRAWL_API_KEY!,
 });
@@ -25,10 +21,6 @@ const WEB_SPLITTER = new RecursiveCharacterTextSplitter({
   chunkOverlap: 200,
   separators: ["\n\n", "\n", ". ", " "],
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 const MIN_CHUNK_LENGTH = 80;
 const MIN_PAGE_LENGTH  = 200;
@@ -73,10 +65,6 @@ const NOISE_PATTERNS: RegExp[] = [
   /\[\s*\]\([^)]*\)/g,
   /\n{3,}/g,
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
 
 function cleanMarkdown(raw: string): string {
   let cleaned = raw;
@@ -128,10 +116,6 @@ export function getSectionFromUrl(url: string): string {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INGESTION
-// ─────────────────────────────────────────────────────────────────────────────
-
 export async function ingestDocument(documentId: string): Promise<void> {
   try {
     const document = await prisma.document.findUnique({
@@ -143,7 +127,6 @@ export async function ingestDocument(documentId: string): Promise<void> {
 
     const vectorStore = await getVectorStore();
 
-    // ── Website ──────────────────────────────────────────────────────────────
     if (document.type === "url" && document.sourceUrl) {
 
       if (isInternalUrl(document.sourceUrl)) {
@@ -292,16 +275,8 @@ export async function ingestDocument(documentId: string): Promise<void> {
         }
       }
 
-      console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎉 Ingestion complete
-   Pages crawled  : ${pages.length}
-   Pages skipped  : ${skippedPages}
-   Chunks embedded: ${totalChunks}
-   Chunks dropped : ${skippedChunks}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      console.log(`🎉 Ingestion complete | Pages: ${pages.length}, Skipped: ${skippedPages}, Chunks: ${totalChunks}, Dropped: ${skippedChunks}`);
 
-    // ── HR / Policy Documents ────────────────────────────────────────────────
     } else if (
       (document.type === "pdf"  ||
        document.type === "text" ||

@@ -20,6 +20,19 @@ function sanitizeForRetrieval(q: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+async function correctQueryTypos(query: string): Promise<string> {
+  try {
+    const correctionPrompt = `Fix any spelling mistakes in this search query. Return ONLY the corrected query as plain text, no explanation, no punctuation changes, no rewording. If there are no mistakes, return it exactly as given. Query: ${query}`;
+    const message = new HumanMessage(correctionPrompt);
+    const response = await llm.invoke([message]);
+    const corrected = (response.content as string).trim();
+    return corrected || query;
+  } catch {
+    return query;
+  }
+}
+
 import { llm } from "./llm";
 import { getHybridRetriever, type RetrievalFilter } from "./vectorstore";
 
@@ -57,6 +70,13 @@ CONTENT RULES:
 - NEVER invent process steps, methodologies, or frameworks that are not explicitly stated in the context. If the context lists 5 steps, do not add a 6th. If the context describes a 3-phase approach, do not expand it to 4 phases.
 - NEVER fabricate statistics, counts, or metrics. If the context says "500+ projects", do not say "500+ mobile apps". If the context does not mention a specific number, do not provide one.
 - NEVER fill in gaps with generic industry knowledge or plausible-sounding information. If the context is incomplete, say what you know and stop. Do not pad with invented details.
+
+ZERO-FABRICATION POLICY FOR HR/POLICY DETAILS (CRITICAL — NEVER VIOLATE):
+- NEVER invent or guess specific numbers for: leave durations (days, weeks, months), pay percentages, salary amounts, probation periods, notice periods, entitlement counts, or eligibility criteria.
+- If the context mentions a policy topic (e.g., "adoption leave", "maternity benefit") but does NOT state the exact duration, pay, or conditions, you MUST say that the specific details are not available rather than guessing plausible numbers.
+- NEVER say things like "12 weeks", "6 weeks pre-adoption", "full pay", "80% salary", or any specific figure unless those EXACT numbers appear word-for-word in the context below.
+- If the context only PARTIALLY covers a topic, state ONLY what is explicitly mentioned and clearly tell the user that further details are not available in the current documents. Do NOT fill the gaps.
+- When in doubt between saying something specific vs saying you don't have the detail, ALWAYS choose to say you don't have the detail. Being incomplete is acceptable; being wrong is not.
 
 LENGTH DISCIPLINE:
 - Answer at the shortest length that fully addresses the question. Do not pad.
@@ -344,10 +364,11 @@ export async function classifyQuery(
   history: MessageNode[] = []
 ): Promise<"general" | "document_query" | "website_query"> {
   try {
+    const correctedQuery = await correctQueryTypos(query);
     const historyText = history.map(h => `${h.role}: ${h.content}`).join("\\n");
     const classifierPrompt = CLASSIFIER_PROMPT
       .replace("{history}", historyText || "No previous history.")
-      .replace("{query}", query);
+      .replace("{query}", correctedQuery);
     const message = new HumanMessage(classifierPrompt);
     const response = await llm.invoke([message]);
     const content = (response.content as string).trim().toLowerCase();
@@ -409,8 +430,11 @@ export async function* streamAnswer(
   opts: RetrievalFilter = {},
   history: MessageNode[] = []
 ): AsyncGenerator<string, void, unknown> {
+  // Correct typos before retrieval for better matching
+  const correctedQuery = await correctQueryTypos(query);
+
   // Use hybrid retriever with abbreviation-aware fallback.
-  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(query, opts);
+  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(correctedQuery, opts);
   const hasInternalDocs = hybridDocs.some(
     (d) => String((d.metadata as Record<string, unknown>)?.source ?? "") === "document"
   );
@@ -437,6 +461,15 @@ export async function* streamAnswer(
   if (hybridDocs.length === 0) {
     yield "I don't have that information.";
     return;
+  }
+
+  // Debug: log retrieved context so we can verify what the LLM sees
+  console.log(`\n📄 [streamAnswer] Query: "${query}"`);
+  console.log(`   Retrieved ${hybridDocs.length} chunks:`);
+  for (const doc of hybridDocs) {
+    const meta = doc.metadata as Record<string, unknown>;
+    const src = meta.source === "document" ? `DOC:${meta.docName ?? meta.docId}` : `WEB:${meta.source_url}`;
+    console.log(`   - [${src}] ${doc.pageContent.slice(0, 120).replace(/\n/g, " ")}...`);
   }
 
   const prompt = ChatPromptTemplate.fromMessages([
@@ -480,22 +513,22 @@ export async function getRelevantSources(
   query: string,
   opts: RetrievalFilter = {}
 ): Promise<SourceMetadata[]> {
-  // Use hybrid retriever with abbreviation-aware fallback.
-  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(query, opts);
+  const correctedQuery = await correctQueryTypos(query);
+  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(correctedQuery, opts);
   const hasInternalDocs = hybridDocs.some(
     (d) => String((d.metadata as Record<string, unknown>)?.source ?? "") === "document"
   );
 
-  if ((!hasInternalDocs) && /\bwfh\b|work\s*from\s*home/i.test(query)) {
+  if ((!hasInternalDocs) && /\bwfh\b|work\s*from\s*home/i.test(correctedQuery)) {
     hybridDocs = await getHybridRetriever(
-      sanitizeForRetrieval(`${query} remote work policy work from home`),
+      sanitizeForRetrieval(`${correctedQuery} remote work policy work from home`),
       opts,
     );
   }
 
   if (hybridDocs.length === 0) {
-    const normalizedQuery = query.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
-    if (normalizedQuery && normalizedQuery !== query) {
+    const normalizedQuery = correctedQuery.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
+    if (normalizedQuery && normalizedQuery !== correctedQuery) {
       hybridDocs = await getHybridRetriever(sanitizeForRetrieval(normalizedQuery), opts);
     }
   }

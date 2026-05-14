@@ -86,10 +86,17 @@ export async function POST(req: NextRequest) {
         // Step 1: Expand abbreviations for better semantic search
         const expandedQuery = expandAbbreviations(message);
 
-        // Known enterprise abbreviations should always route to document retrieval.
+        // Known abbreviations and policy keywords always route to document retrieval.
         const forceDocumentQuery =
           /\bwfh\b|work\s*from\s*home/i.test(message) ||
-          containsKnownAbbreviation(message);
+          containsKnownAbbreviation(message) ||
+          /\bzoho\b/i.test(message) ||
+          /\btask\s*tracker\b/i.test(message) ||
+          /\battendance\b/i.test(message) ||
+          /\bstand\s*up\b|\bstandup\b/i.test(message) ||
+          /\bleave\s*(policy|management|balance|request|approval)?\b/i.test(message) ||
+          /\b(eod|end\s*of\s*day)\s*report\b/i.test(message) ||
+          /\b(compliance|consequences|disciplinary)\b/i.test(message);
 
         // Step 2: Classify the expanded query (Passing history for anti-trickery)
         const queryType = forceDocumentQuery
