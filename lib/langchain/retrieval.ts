@@ -397,6 +397,30 @@ export function sanitizeStreamToken(token: string): string {
     .replace(/_{2,}/g, "");
 }
 
+function fixNumberedLists(text: string): string {
+  const lines = text.split("\n");
+  const repeatedOnes = lines.filter((l) => /^1\.\s/.test(l)).length;
+  if (repeatedOnes <= 1) return text;
+
+  let listIndex = 0;
+  let inList = false;
+  return lines
+    .map((line) => {
+      if (/^\d+\.\s/.test(line)) {
+        inList = true;
+        listIndex++;
+        return line.replace(/^\d+\./, `${listIndex}.`);
+      }
+      if (inList && (line.trim() === "" || /^\s/.test(line))) {
+        return line;
+      }
+      inList = false;
+      listIndex = 0;
+      return line;
+    })
+    .join("\n");
+}
+
 export async function* streamGeneralAnswer(
   query: string,
   history: MessageNode[] = [],
@@ -413,13 +437,15 @@ export async function* streamGeneralAnswer(
       chat_history: formatHistory(history),
     });
     const stream = await llm.stream(formattedPrompt);
-
+    let fullText = "";
     for await (const chunk of stream) {
       if (typeof chunk.content === "string" && chunk.content) {
-        const cleaned = sanitizeStreamToken(chunk.content);
-        if (cleaned) yield cleaned;
+        fullText += chunk.content;
       }
     }
+    const fixed = fixNumberedLists(fullText);
+    const cleaned = sanitizeStreamToken(fixed);
+    if (cleaned) yield cleaned;
   } catch {
     yield "An error occurred while processing your request.";
   }
@@ -463,14 +489,6 @@ export async function* streamAnswer(
     return;
   }
 
-  // Debug: log retrieved context so we can verify what the LLM sees
-  console.log(`\n📄 [streamAnswer] Query: "${query}"`);
-  console.log(`   Retrieved ${hybridDocs.length} chunks:`);
-  for (const doc of hybridDocs) {
-    const meta = doc.metadata as Record<string, unknown>;
-    const src = meta.source === "document" ? `DOC:${meta.docName ?? meta.docId}` : `WEB:${meta.source_url}`;
-    console.log(`   - [${src}] ${doc.pageContent.slice(0, 120).replace(/\n/g, " ")}...`);
-  }
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", SYSTEM_PROMPT],
@@ -487,13 +505,15 @@ export async function* streamAnswer(
       chat_history: formatHistory(history),
     });
     const stream = await llm.stream(formatted);
-
+    let fullText = "";
     for await (const chunk of stream) {
       if (typeof chunk.content === "string" && chunk.content) {
-        const cleaned = sanitizeStreamToken(chunk.content);
-        if (cleaned) yield cleaned;
+        fullText += chunk.content;
       }
     }
+    const fixed = fixNumberedLists(fullText);
+    const cleaned = sanitizeStreamToken(fixed);
+    if (cleaned) yield cleaned;
   } catch (error) {
     yield "An error occurred while processing your request.";
   }

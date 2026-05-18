@@ -41,7 +41,9 @@ interface ChatSession {
   createdAt: string;
 }
 
-export default function ChatPage() {
+import { Suspense } from "react";
+
+function ChatContent() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const searchParams = useSearchParams();
@@ -66,7 +68,7 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (document.documentElement.classList.contains("chat-dark")) {
+    if (typeof document !== "undefined" && document.documentElement.classList.contains("chat-dark")) {
       setIsDark(true);
     }
   }, []);
@@ -153,7 +155,7 @@ export default function ChatPage() {
       }
     };
     initSession();
-  }, [fetchSessions, handleNewChat, searchParams, activeSessionId, fetchMessages]); // Only run on mount to trigger the initial logic
+  }, [fetchSessions, handleNewChat, searchParams, activeSessionId, fetchMessages, router]); 
 
   type SSEEvent = { token?: string; done?: boolean; sources?: Source[]; error?: string };
 
@@ -281,7 +283,7 @@ export default function ChatPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6B6560]">
                 Chat workspace
               </p>
-              <h1 className="text-lg font-semibold text-[#1C1917]">
+              <h1 className="text-lg font-semibold text-[#6B6560]">
                 Enterprise Chatbot
               </h1>
             </div>
@@ -497,5 +499,17 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <Spinner size="xl" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }

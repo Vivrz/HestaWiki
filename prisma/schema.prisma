@@ -123,3 +123,12 @@ model ChatMessage {
 
   @@map("chat_messages")
 }
+
+model LangchainPgEmbedding {
+  id        String                      @id @default(dbgenerated("gen_random_uuid()"))
+  content   String?
+  metadata  Json?
+  embedding Unsupported("vector(768)")
+
+  @@map("langchain_pg_embedding")
+}
