@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: process.env.AUTH_TRUST_HOST !== "false",
   adapter: PrismaAdapter(prisma),
   providers: [
     MicrosoftEntraID({
@@ -46,3 +47,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "database",
   },
 });
+
+export async function getAuthenticatedUser() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return null;
+    return session.user;
+  } catch (error) {
+    console.warn("Auth session resolution failed:", error);
+    return null;
+  }
+}

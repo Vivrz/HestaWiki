@@ -19,10 +19,14 @@ interface Department {
   name: string;
 }
 
-export default function UploadTabs() {
+interface UploadTabsProps {
+  initialDept?: string;
+}
+
+export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [fileDept, setFileDept] = useState("");
-  const [urlDept, setUrlDept] = useState("");
+  const [fileDept, setFileDept] = useState(initialDept);
+  const [urlDept, setUrlDept] = useState(initialDept);
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -107,11 +111,10 @@ export default function UploadTabs() {
         <div className="absolute right-0 top-0 z-50">
           <Toast>
             <div
-              className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                toast.type === "success"
+              className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${toast.type === "success"
                   ? "bg-green-100 text-green-500"
                   : "bg-red-100 text-red-500"
-              }`}
+                }`}
             >
               {toast.type === "success" ? (
                 <HiCheck className="h-5 w-5" />

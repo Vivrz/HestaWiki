@@ -36,17 +36,14 @@ export default function DepartmentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="page-hero">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-700">
-          Departments
-        </p>
-        <h1 className="mt-3 text-4xl font-bold text-slate-950">
-          Organize your knowledge by team and function.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-          Keep document ownership structured so admins and employees can find the right context faster.
-        </p>
-      </section>
+      {/* Compact page header */}
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-3xl font-bold text-slate-950">Departments</h1>
+        <span className="text-sm text-slate-500">
+          Admin · Organize your knowledge by team and function
+        </span>
+      </div>
+
       <DepartmentCard departments={departments} onRefresh={fetchDepartments} />
     </div>
   );

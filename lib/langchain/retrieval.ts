@@ -25,7 +25,7 @@ async function correctQueryTypos(query: string): Promise<string> {
   try {
     const correctionPrompt = `Fix any spelling mistakes in this search query. Return ONLY the corrected query as plain text, no explanation, no punctuation changes, no rewording. If there are no mistakes, return it exactly as given. Query: ${query}`;
     const message = new HumanMessage(correctionPrompt);
-    const response = await llm.invoke([message]);
+    const response = await getLlm().invoke([message]);
     const corrected = (response.content as string).trim();
     return corrected || query;
   } catch {
@@ -33,7 +33,7 @@ async function correctQueryTypos(query: string): Promise<string> {
   }
 }
 
-import { llm } from "./llm";
+import { getLlm } from "./llm";
 import { getHybridRetriever, type RetrievalFilter } from "./vectorstore";
 
 export type { RetrievalFilter };
@@ -370,7 +370,7 @@ export async function classifyQuery(
       .replace("{history}", historyText || "No previous history.")
       .replace("{query}", correctedQuery);
     const message = new HumanMessage(classifierPrompt);
-    const response = await llm.invoke([message]);
+    const response = await getLlm().invoke([message]);
     const content = (response.content as string).trim().toLowerCase();
 
     if (content === "general") return "general";
@@ -436,7 +436,7 @@ export async function* streamGeneralAnswer(
       input: query,
       chat_history: formatHistory(history),
     });
-    const stream = await llm.stream(formattedPrompt);
+    const stream = await getLlm().stream(formattedPrompt);
     let fullText = "";
     for await (const chunk of stream) {
       if (typeof chunk.content === "string" && chunk.content) {
@@ -504,7 +504,7 @@ export async function* streamAnswer(
       context: hybridDocs.map((doc) => doc.pageContent).join("\n\n"),
       chat_history: formatHistory(history),
     });
-    const stream = await llm.stream(formatted);
+    const stream = await getLlm().stream(formatted);
     let fullText = "";
     for await (const chunk of stream) {
       if (typeof chunk.content === "string" && chunk.content) {

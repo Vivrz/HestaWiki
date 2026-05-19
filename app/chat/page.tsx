@@ -59,6 +59,7 @@ function ChatContent() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [greeting, setGreeting] = useState("Welcome back,");
+  const authRedirectTriggered = useRef(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -88,6 +89,12 @@ function ChatContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
+  const handleAuthExpired = useCallback(() => {
+    if (authRedirectTriggered.current) return;
+    authRedirectTriggered.current = true;
+    signOut({ callbackUrl: "/auth/signin" });
+  }, []);
+
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -98,21 +105,30 @@ function ChatContent() {
 
   const fetchSessions = useCallback(async () => {
     const res = await fetch("/api/chat/sessions");
+    if (res.status === 401 || res.status === 403) {
+      handleAuthExpired();
+      return;
+    }
     if (res.ok) {
       const data = (await res.json()) as ChatSession[];
       setSessions(data);
     }
-  }, []);
+  }, [handleAuthExpired]);
 
   const fetchMessages = useCallback(async (sessionId: string) => {
     setLoadingMessages(true);
     const res = await fetch(`/api/chat/sessions/${sessionId}/messages`);
+    if (res.status === 401 || res.status === 403) {
+      handleAuthExpired();
+      setLoadingMessages(false);
+      return;
+    }
     if (res.ok) {
       const data = (await res.json()) as Message[];
       setMessages(data);
     }
     setLoadingMessages(false);
-  }, []);
+  }, [handleAuthExpired]);
 
   const handleSelectSession = (id: string) => {
     setActiveSessionId(id);
@@ -121,13 +137,17 @@ function ChatContent() {
 
   const handleNewChat = useCallback(async () => {
     const res = await fetch("/api/chat/sessions", { method: "POST" });
+    if (res.status === 401 || res.status === 403) {
+      handleAuthExpired();
+      return;
+    }
     if (res.ok) {
       const session = (await res.json()) as ChatSession;
       setSessions((prev) => [session, ...prev]);
       setActiveSessionId(session.id);
       setMessages([]);
     }
-  }, []);
+  }, [handleAuthExpired]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -214,6 +234,10 @@ function ChatContent() {
       setStreaming(true); // Show loading state while creating session
       try {
         const res = await fetch("/api/chat/sessions", { method: "POST" });
+        if (res.status === 401 || res.status === 403) {
+          handleAuthExpired();
+          throw new Error("Session expired");
+        }
         if (!res.ok) throw new Error("Failed to create session");
         const newSession = (await res.json()) as ChatSession;
         setSessions((prev) => [newSession, ...prev]);
@@ -242,6 +266,10 @@ function ChatContent() {
         body: JSON.stringify({ sessionId, message: trimmed }),
       });
 
+      if (res.status === 401 || res.status === 403) {
+        handleAuthExpired();
+        throw new Error("Session expired");
+      }
       if (!res.ok || !res.body) throw new Error("Failed to send message");
 
       const { content, sources } = await readStream(res.body);

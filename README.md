@@ -74,10 +74,50 @@ pnpm dev
 
 Visit [http://localhost:3000](http://localhost:3000)
 
+## Docker Quick Start
+
+1. Copy Docker environment template:
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+2. Start app + Postgres with Docker Compose:
+
+```bash
+pnpm docker:up
+```
+
+3. Stop services:
+
+```bash
+pnpm docker:down
+```
+
+Notes:
+- App host port defaults to `3001` in Docker (`APP_PORT`) to avoid conflicts with local dev servers on `3000`.
+- Auth host validation is enabled via `AUTH_TRUST_HOST=true` in Docker to trust requests on `localhost:${APP_PORT}`.
+- Compose includes pgvector-enabled Postgres and initializes the `vector` extension.
+- Postgres host port defaults to `5433` in Docker (`POSTGRES_PORT`) to avoid conflicts with local Postgres on `5432`.
+- Ollama is external by default through `OLLAMA_BASE_URL` (set to `host.docker.internal` in Docker examples).
+- An optional Compose profile named `ollama` exists if you want to run Ollama in-container.
+
+## Testing Strategy (Containerized)
+
+- Fast quality gate: lint + build in CI.
+- Docker smoke gate: boots Postgres + app, verifies pgvector extension, checks app reachability, and validates unauthorized API guard behavior.
+- Local smoke command:
+
+```bash
+pnpm test:smoke:docker
+```
+
 ## Azure App Registration
 
 1. Go to Azure Portal → Entra ID → App Registrations → New Registration
-2. Add Redirect URI: `http://localhost:3000/api/auth/callback/azure-ad`
+2. Add Redirect URI:
+   - Local dev: `http://localhost:3000/api/auth/callback/azure-ad`
+   - Docker default: `http://localhost:3001/api/auth/callback/azure-ad`
 3. API Permissions: `User.Read` (Microsoft Graph, delegated)
 4. Create a client secret → copy value to `AZURE_AD_CLIENT_SECRET`
 5. Copy Client ID → `AZURE_AD_CLIENT_ID`

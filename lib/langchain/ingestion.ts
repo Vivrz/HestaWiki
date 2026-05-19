@@ -6,9 +6,19 @@ import { Document } from "@langchain/core/documents";
 import { prisma } from "@/lib/prisma";
 import { getVectorStore } from "./vectorstore";
 
-const firecrawl = new FirecrawlApp({
-  apiKey: process.env.FIRECRAWL_API_KEY!,
-});
+let firecrawlClient: FirecrawlApp | null = null;
+
+function getFirecrawlClient(): FirecrawlApp {
+  if (firecrawlClient) return firecrawlClient;
+
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) {
+    throw new Error("FIRECRAWL_API_KEY is required for URL ingestion");
+  }
+
+  firecrawlClient = new FirecrawlApp({ apiKey });
+  return firecrawlClient;
+}
 
 const HR_SPLITTER = new RecursiveCharacterTextSplitter({
   chunkSize: 800,
@@ -135,6 +145,7 @@ export async function ingestDocument(documentId: string): Promise<void> {
 
       console.log(`🔥 Starting crawl: ${document.sourceUrl}`);
 
+      const firecrawl = getFirecrawlClient();
       const crawlResult = await firecrawl.crawl(document.sourceUrl, {
         limit: 50,
         scrapeOptions: {

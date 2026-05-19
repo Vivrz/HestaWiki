@@ -1,29 +1,25 @@
 import DataManagementTabs from "@/components/admin/DataManagementTabs";
 
 interface PageProps {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; dept?: string }>;
 }
 
 export default async function DataManagementPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const initialTab = params.tab === "documents" ? "documents" : "upload";
+  const initialDept = params.dept ?? "";
 
   return (
     <div className="space-y-6">
-      <section className="page-hero">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">
-          Data Management
-        </p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">
-          Upload, organize, and manage your knowledge base.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-          Add new documents or URLs for ingestion and review existing content
-          across departments.
-        </p>
-      </section>
+      {/* Compact page header */}
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-3xl font-bold text-slate-950">Data management</h1>
+        <span className="text-sm text-slate-500">
+          Admin · Upload, organize, and manage your knowledge base
+        </span>
+      </div>
 
-      <DataManagementTabs initialTab={initialTab} />
+      <DataManagementTabs initialTab={initialTab} initialDept={initialDept} />
     </div>
   );
 }

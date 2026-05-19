@@ -1,15 +1,21 @@
-import { auth } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { validateMutationRequestOrigin } from "@/lib/api/security";
+
+const createSessionSchema = z.object({
+  title: z.string().trim().min(1).max(100).optional(),
+});
 
 export async function GET() {
-  const session = await auth();
-  if (!session) {
+  const user = await getAuthenticatedUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const sessions = await prisma.chatSession.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { messages: true } },
@@ -20,21 +26,33 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session) {
+  const originError = validateMutationRequestOrigin(req);
+  if (originError) return originError;
+
+  const user = await getAuthenticatedUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { title?: string } = {};
+  let body: z.infer<typeof createSessionSchema> = {};
+  const hasBody = Number(req.headers.get("content-length") ?? "0") > 0;
   try {
-    body = await req.json() as { title?: string };
+    const raw = (await req.json()) as unknown;
+    const parsed = createSessionSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    body = parsed.data;
   } catch {
-    // empty body is fine — title defaults to "New Chat"
+    if (hasBody) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    // Empty body is fine; title defaults to "New Chat".
   }
   const chatSession = await prisma.chatSession.create({
     data: {
       title: body.title ?? "New Chat",
-      userId: session.user.id,
+      userId: user.id,
     },
   });
 

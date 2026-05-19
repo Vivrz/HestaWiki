@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   streamAnswer,
@@ -11,30 +11,51 @@ import {
 } from "@/lib/langchain/retrieval";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
+import {
+  cuidSchema,
+  validateMutationRequestOrigin,
+} from "@/lib/api/security";
+
+const chatRequestSchema = z.object({
+  sessionId: cuidSchema,
+  message: z.string().trim().min(1).max(4000),
+});
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session) {
+  const originError = validateMutationRequestOrigin(req);
+  if (originError) return originError;
+
+  const user = await getAuthenticatedUser();
+  if (!user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
   }
 
-  const body = (await req.json()) as { sessionId?: string; message?: string };
-  const { sessionId, message } = body;
-
-  if (!sessionId || !message) {
+  let payload: z.infer<typeof chatRequestSchema>;
+  try {
+    const body = (await req.json()) as unknown;
+    const parsed = chatRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+      });
+    }
+    payload = parsed.data;
+  } catch {
     return new Response(
-      JSON.stringify({ error: "sessionId and message are required" }),
+      JSON.stringify({ error: "Invalid JSON body" }),
       { status: 400 },
     );
   }
+  const { sessionId, message } = payload;
 
   const chatSession = await prisma.chatSession.findUnique({
     where: { id: sessionId },
   });
 
-  if (!chatSession || chatSession.userId !== session.user.id) {
+  if (!chatSession || chatSession.userId !== user.id) {
     return new Response(JSON.stringify({ error: "Session not found" }), {
       status: 404,
     });
@@ -154,9 +175,8 @@ export async function POST(req: NextRequest) {
         const doneEvent = `data: ${JSON.stringify({ done: true, sources })}\n\n`;
         controller.enqueue(encoder.encode(doneEvent));
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "An error occurred";
-        const errorEvent = `data: ${JSON.stringify({ error: errorMsg })}\n\n`;
+        console.error("Chat stream failed:", error);
+        const errorEvent = `data: ${JSON.stringify({ error: "Unable to process request" })}\n\n`;
         controller.enqueue(encoder.encode(errorEvent));
       } finally {
         controller.close();
@@ -169,6 +189,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
