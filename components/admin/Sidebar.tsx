@@ -12,6 +12,7 @@ import {
   HiLogout,
   HiSparkles,
 } from "react-icons/hi";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
@@ -20,10 +21,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/admin", label: "Dashboard", icon: HiOutlineHome },
-  { href: "/admin/users", label: "User Management", icon: HiOutlineUsers },
-  { href: "/admin/data-management", label: "Data Management", icon: HiOutlineDatabase },
-  { href: "/admin/departments", label: "Departments", icon: HiOutlineOfficeBuilding },
+  { href: "/admin", label: "Overview", icon: HiOutlineHome },
+  { href: "/admin/data-management", label: "Files & Links", icon: HiOutlineDatabase },
+  { href: "/admin/departments", label: "Teams", icon: HiOutlineOfficeBuilding },
+  { href: "/admin/users", label: "People", icon: HiOutlineUsers },
 ];
 
 interface SidebarContentProps {
@@ -33,53 +34,42 @@ interface SidebarContentProps {
 function SidebarContent({ onNavigate }: SidebarContentProps) {
   const pathname = usePathname();
 
-  const handleClick = () => {
-    if (onNavigate) onNavigate();
-  };
-
   return (
     <div className="flex h-full flex-col px-5 py-6">
       <Link
         href="/admin"
-        onClick={handleClick}
-        className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4 transition hover:bg-white/10"
+        onClick={onNavigate}
+        className="rounded-3xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10"
       >
         <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-cyan-300 to-emerald-300 text-slate-950 shadow-lg">
           <HiSparkles className="h-6 w-6" />
         </div>
-        <div>
-          <p className="font-display text-lg font-semibold text-white">
-            Hestawiki
-          </p>
-          <p className="mt-1 text-sm text-slate-300">
-            Knowledge operations console
-          </p>
-        </div>
+        <p className="font-display text-lg font-semibold text-white">Hestawiki</p>
+        <p className="mt-1 text-sm text-slate-300">Operations workspace</p>
       </Link>
 
       <div className="mt-8 flex flex-1 flex-col justify-between">
         <nav className="space-y-2" aria-label="Admin navigation">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive =
-              href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
+            const isActive = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
             return (
               <Link
                 key={href}
                 href={href}
-                onClick={handleClick}
-                className={`group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                onClick={onNavigate}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
                   isActive
-                    ? "bg-white text-slate-950 shadow-[0_20px_50px_-25px_rgba(56,189,248,0.7)]"
-                    : "text-slate-300 hover:bg-white/10 hover:text-white"
-                }`}
+                    ? "bg-white text-slate-950 shadow-[0_20px_50px_-25px_rgba(56,189,248,0.6)]"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white",
+                )}
               >
                 <span
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition ${
-                    isActive
-                      ? "bg-slate-950 text-sky-300"
-                      : "bg-white/5 text-slate-300 group-hover:bg-white/10"
-                  }`}
+                  className={cn(
+                    "inline-flex h-10 w-10 items-center justify-center rounded-xl transition",
+                    isActive ? "bg-slate-950 text-sky-300" : "bg-white/5 text-slate-300",
+                  )}
                 >
                   <Icon className="h-5 w-5" />
                 </span>
@@ -88,11 +78,10 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
             );
           })}
 
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-            <p className="font-medium text-white">Workspace tip</p>
-            <p className="mt-2 leading-6 text-slate-300/90">
-              Upload and organize the latest internal docs so answers stay
-              grounded in current knowledge.
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+            <p className="font-medium text-white">Next step</p>
+            <p className="mt-2 leading-6">
+              Add fresh files each week so answers stay accurate and current.
             </p>
           </div>
         </nav>
@@ -100,7 +89,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         <div className="space-y-2">
           <Link
             href="/chat"
-            onClick={handleClick}
+            onClick={onNavigate}
             className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
