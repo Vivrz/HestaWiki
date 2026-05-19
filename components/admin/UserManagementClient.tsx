@@ -1,74 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Card, TextInput, Select } from "flowbite-react";
+import { useMemo, useState } from "react";
 import {
-  HiOutlineUsers,
-  HiOutlineChartPie,
-  HiOutlineClock,
-  HiOutlineChatAlt2,
-  HiSearch,
-} from "react-icons/hi";
-import {
-  AreaChart,
   Area,
-  BarChart,
+  AreaChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from "recharts";
-import {
-  AdminUser,
-  UserRole,
-  UsagePoint,
-} from "./types";
+import { HiOutlineChatAlt2, HiOutlineClock, HiOutlineUsers } from "react-icons/hi";
+import { AdminUser, UsagePoint, UserRole } from "./types";
 import UserList from "./UserList";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 const ROLES: UserRole[] = ["Admin", "HR", "Engineer", "Finance", "Legal", "Designer", "User"];
-
-interface KpiTileProps {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  bg: string;
-}
-
-function KpiTile({ label, value, icon, bg }: KpiTileProps) {
-  return (
-    <div className={`rounded-2xl ${bg} px-5 py-5`}>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-600">{label}</p>
-          <p className="mt-1.5 text-3xl font-bold text-slate-950">{value}</p>
-        </div>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/70 text-slate-700 shadow-sm">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChartTooltipContent({ active, payload, label }: {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
-      <p className="mb-1 text-xs font-semibold text-slate-500">{label}</p>
-      {payload.map((entry) => (
-        <p key={entry.name} className="text-sm" style={{ color: entry.color }}>
-          {entry.name}: <span className="font-semibold">{entry.value}</span>
-        </p>
-      ))}
-    </div>
-  );
-}
 
 interface UserManagementClientProps {
   users: AdminUser[];
@@ -81,6 +32,58 @@ interface UserManagementClientProps {
     avgSessionsPerUser: number;
     totalChatsThisMonth: number;
   };
+}
+
+function MetricTile({
+  label,
+  value,
+  insight,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  insight: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardDescription>{label}</CardDescription>
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            {icon}
+          </span>
+        </div>
+        <CardTitle className="text-3xl">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-slate-600">{insight}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChartTooltipContent({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
+      <p className="mb-1 text-xs font-semibold text-slate-500">{label}</p>
+      {payload.map((entry) => (
+        <p key={entry.name} style={{ color: entry.color }}>
+          {entry.name}: <span className="font-semibold">{entry.value}</span>
+        </p>
+      ))}
+    </div>
+  );
 }
 
 export default function UserManagementClient({
@@ -96,165 +99,139 @@ export default function UserManagementClient({
     let users = initialUsers;
 
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const query = search.trim().toLowerCase();
       users = users.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q)
+        (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
       );
     }
 
     if (roleFilter) {
-      users = users.filter((u) => u.role === roleFilter);
+      users = users.filter((user) => user.role === roleFilter);
     }
 
     return users;
-  }, [initialUsers, search, roleFilter]);
+  }, [initialUsers, roleFilter, search]);
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <section className="page-hero">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">
-          User Management
-        </p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">
-          See who&apos;s asking, what they need, and how the platform is used.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-          Monitor user activity, view chat histories, and understand how your
-          team interacts with the enterprise knowledge base.
+      <section className="admin-shell">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">People</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Understand who is using chat</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
+          Review user activity, inspect chat history, and find people who need onboarding support.
         </p>
       </section>
 
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <KpiTile
-          label="Weekly Active"
-          value={usageStats.weeklyActiveUsers}
-          icon={<HiOutlineUsers className="h-6 w-6" />}
-          bg="bg-tile-blue"
-        />
-        <KpiTile
-          label="Monthly Active"
-          value={usageStats.monthlyActiveUsers}
-          icon={<HiOutlineChartPie className="h-6 w-6" />}
-          bg="bg-tile-mint"
-        />
-        <KpiTile
-          label="Avg Session"
-          value={`${usageStats.avgSessionMinutes}m`}
-          icon={<HiOutlineClock className="h-6 w-6" />}
-          bg="bg-tile-lavender"
-        />
-        <KpiTile
-          label="Sessions / User"
-          value={usageStats.avgSessionsPerUser}
-          icon={<HiOutlineChatAlt2 className="h-6 w-6" />}
-          bg="bg-sky-100"
-        />
-        <KpiTile
-          label="Total Chats"
-          value={usageStats.totalChatsThisMonth.toLocaleString()}
-          icon={<HiOutlineChatAlt2 className="h-6 w-6" />}
-          bg="bg-tile-peach"
-        />
-      </div>
-
-      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {/* Weekly Usage */}
-        <Card className="glass-panel rounded-[1.75rem] border-white/60">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-950">Weekly Usage</h2>
-            <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-              Last 7 days
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={weeklyUsage}>
-              <defs>
-                <linearGradient id="chatGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0EA5A4" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#0EA5A4" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis hide />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Area
-                type="monotone"
-                dataKey="chats"
-                name="Chats"
-                stroke="#0EA5A4"
-                strokeWidth={2}
-                fill="url(#chatGrad)"
-              />
-              <Area
-                type="monotone"
-                dataKey="users"
-                name="Users"
-                stroke="#8b5cf6"
-                strokeWidth={2}
-                fill="none"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly trend</CardTitle>
+            <CardDescription>Shows whether usage is rising or dropping over the last 7 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={weeklyUsage}>
+                <defs>
+                  <linearGradient id="weeklyGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0EA5A4" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#0EA5A4" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Area type="monotone" dataKey="chats" name="Chats" stroke="#0EA5A4" strokeWidth={2} fill="url(#weeklyGradient)" />
+                <Area type="monotone" dataKey="users" name="Users" stroke="#6366f1" strokeWidth={2} fill="none" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
         </Card>
 
-        {/* Monthly Usage */}
-        <Card className="glass-panel rounded-[1.75rem] border-white/60">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-950">Monthly Usage</h2>
-            <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-              Last 6 months
-            </span>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={monthlyUsage}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis hide />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="chats"
-                name="Chats"
-                fill="#0EA5A4"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly trend</CardTitle>
+            <CardDescription>Compares monthly chat volume over the last 6 months.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={monthlyUsage}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="chats" name="Chats" fill="#0EA5A4" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
         </Card>
       </div>
 
-      {/* Recent Users */}
-      <Card className="glass-panel rounded-[1.75rem] border-white/60">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-slate-950">Recent Users</h2>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <TextInput
-              // icon={HiSearch}
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="min-w-[220px]"
-            />
-            <Select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="min-w-[160px]"
-            >
-              <option value="">All Roles</option>
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </Select>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricTile
+          label="People active this week"
+          value={usageStats.weeklyActiveUsers}
+          insight="Users who started at least one chat in the last 7 days."
+          icon={<HiOutlineUsers className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="People active this month"
+          value={usageStats.monthlyActiveUsers}
+          insight="Monthly active users across all teams."
+          icon={<HiOutlineUsers className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Average chat length"
+          value={`${usageStats.avgSessionMinutes}m`}
+          insight="Average minutes from first to last message."
+          icon={<HiOutlineClock className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Average chats per person"
+          value={usageStats.avgSessionsPerUser}
+          insight="How many sessions each user starts on average."
+          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Total chats this month"
+          value={usageStats.totalChatsThisMonth.toLocaleString()}
+          insight="Total sessions started in the current month."
+          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle>People and chat history</CardTitle>
+              <CardDescription>Search people, then expand rows to inspect full conversations.</CardDescription>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                placeholder="Search by name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="min-w-[220px]"
+              />
+              <Select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="min-w-[160px]"
+              >
+                <option value="">All roles</option>
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
-        </div>
-        <UserList users={filteredUsers} />
+        </CardHeader>
+        <CardContent>
+          <UserList users={filteredUsers} />
+        </CardContent>
       </Card>
     </div>
   );
