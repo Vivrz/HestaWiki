@@ -54,10 +54,11 @@ export default function ChatInput({
           type="button"
           onClick={onSend}
           disabled={disabled || !value.trim()}
+          aria-label="Send message"
           className="mb-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           style={{ background: 'var(--accent)' }}
         >
-          <HiPaperAirplane className="h-5 w-5 rotate-90" />
+          <HiPaperAirplane aria-hidden="true" className="h-5 w-5 rotate-90" />
         </button>
       </div>
     </div>
