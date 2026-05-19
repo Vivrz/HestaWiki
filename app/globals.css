@@ -25,6 +25,26 @@
       radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
       radial-gradient(circle at top right, rgba(249, 115, 22, 0.14), transparent 28%),
       linear-gradient(180deg, #f6fbff 0%, #eef4fb 48%, #f8fafc 100%);
+
+    /* shadcn-compatible variables */
+    --background: 210 20% 98%;
+    --foreground: 222.2 47.4% 11.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent-ui: 210 40% 96.1%;
+    --accent-ui-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border-ui: 214.3 31.8% 91.4%;
+    --input-ui: 214.3 31.8% 91.4%;
+    --ring-ui: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
   }
 
   :root.chat-dark {
@@ -81,6 +101,10 @@
 
   .page-hero {
     @apply relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/80 p-6 shadow-[0_30px_100px_-42px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:p-8;
+  }
+
+  .admin-shell {
+    @apply rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8;
   }
 }
 

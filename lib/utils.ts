@@ -1,3 +1,23 @@
+type ClassValue = string | number | null | false | undefined | ClassValue[];
+
+export function cn(...inputs: ClassValue[]): string {
+  const classes: string[] = [];
+
+  const visit = (value: ClassValue) => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (typeof value === "string" || typeof value === "number") {
+      classes.push(String(value));
+    }
+  };
+
+  inputs.forEach(visit);
+  return classes.join(" ");
+}
+
 export function formatDistanceToNow(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
