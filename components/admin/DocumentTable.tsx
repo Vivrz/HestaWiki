@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
-  Badge,
-  Select,
-  TextInput,
-  Button,
-  Modal,
-  Alert,
-  Spinner,
-} from "flowbite-react";
-import { HiSearch, HiTrash, HiEye } from "react-icons/hi";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { HiEye, HiSearch, HiTrash } from "react-icons/hi";
 
 interface Department {
   id: string;
@@ -32,46 +37,6 @@ interface Document {
   filePath: string | null;
 }
 
-const STATUS_COLORS: Record<string, "success" | "warning" | "failure" | "gray"> = {
-  ready: "success",
-  processing: "warning",
-  failed: "failure",
-};
-
-const TYPE_COLORS: Record<string, "blue" | "purple" | "green" | "indigo"> = {
-  pdf: "blue",
-  text: "purple",
-  md: "green",
-  url: "indigo",
-};
-
-const centeredBlurModalTheme = {
-  root: {
-    show: {
-      on: "flex bg-slate-950/30 backdrop-blur-md",
-      off: "hidden",
-    },
-  },
-  content: {
-    base: "relative h-full w-full max-w-3xl p-4 md:h-auto",
-    inner:
-      "relative flex max-h-[88dvh] flex-col overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/90 shadow-[0_30px_100px_-40px_rgba(15,23,42,0.55)] backdrop-blur-xl",
-  },
-  header: {
-    base: "flex items-start justify-between border-b border-slate-200 px-6 py-4",
-    popup: "border-b-0 p-2",
-    title: "text-xl font-semibold text-slate-950",
-    close: {
-      base: "ml-auto inline-flex items-center rounded-xl bg-transparent p-2 text-sm text-slate-400 transition hover:bg-slate-100 hover:text-slate-900",
-      icon: "h-5 w-5",
-    },
-  },
-  body: {
-    base: "flex-1 overflow-auto px-6 py-5",
-    popup: "pt-0",
-  },
-};
-
 export default function DocumentTable() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -84,7 +49,7 @@ export default function DocumentTable() {
   const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -93,8 +58,8 @@ export default function DocumentTable() {
     const params = new URLSearchParams();
     if (selectedDept) params.set("department", selectedDept);
     if (debouncedSearch) params.set("search", debouncedSearch);
-    const res = await fetch(`/api/admin/documents?${params}`);
-    const data = await res.json() as Document[];
+    const res = await fetch(`/api/admin/documents?${params.toString()}`);
+    const data = (await res.json()) as Document[];
     setDocuments(data);
     setLoading(false);
   }, [selectedDept, debouncedSearch]);
@@ -102,7 +67,7 @@ export default function DocumentTable() {
   useEffect(() => {
     fetch("/api/admin/departments")
       .then((r) => r.json())
-      .then((d: Department[]) => setDepartments(d));
+      .then((data: Department[]) => setDepartments(data));
   }, []);
 
   useEffect(() => {
@@ -113,199 +78,186 @@ export default function DocumentTable() {
     const res = await fetch(`/api/admin/documents/${id}`, { method: "DELETE" });
     if (res.ok) {
       setDeleteConfirm(null);
+      setDeleteError("");
       fetchDocuments();
-    } else {
-      setDeleteError("Failed to delete document");
+      return;
     }
+
+    const err = (await res.json()) as { error?: string };
+    setDeleteError(err.error ?? "Failed to delete document.");
+  };
+
+  const statusVariant = (status: string) => {
+    if (status === "ready") return "success" as const;
+    if (status === "failed") return "destructive" as const;
+    return "warning" as const;
   };
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row">
-        <TextInput
-          placeholder="Search documents..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1"
-        />
+        <div className="relative flex-1">
+          <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <Input
+            className="pl-9"
+            placeholder="Search files by name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <Select
           className="min-w-[220px]"
           value={selectedDept}
           onChange={(e) => setSelectedDept(e.target.value)}
         >
-          <option value="">All Departments</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
+          <option value="">All teams</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.id}>
+              {dept.name}
             </option>
           ))}
         </Select>
       </div>
 
-      {deleteError && (
-        <Alert color="failure" onDismiss={() => setDeleteError("")}>
-          {deleteError}
-        </Alert>
-      )}
+      {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
 
       {loading ? (
-        <div className="flex justify-center p-8">
-          <Spinner size="lg" />
-        </div>
+        <div className="rounded-xl border border-slate-200 p-10 text-center text-sm text-slate-500">Loading files...</div>
       ) : documents.length === 0 ? (
-        <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50/80 p-10 text-center">
-          <p className="text-lg font-semibold text-slate-800">No documents found</p>
-          <p className="mt-2 text-sm text-slate-500">
-            Try broadening your search or choose a different department filter.
-          </p>
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+          <p className="text-lg font-semibold text-slate-900">No files found</p>
+          <p className="mt-2 text-sm text-slate-500">Try a different search or team filter.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white">
-          <table className="min-w-full divide-y divide-slate-200 bg-white text-left">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Name
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Department
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Type
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Version
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Uploaded At
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
+        <div className="overflow-hidden rounded-xl border border-slate-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Version</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Added on</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {documents.map((doc) => (
-                <tr
-                  key={doc.id}
-                  className="cursor-pointer bg-white transition hover:bg-slate-50/80"
-                  onClick={() => setSelectedDoc(doc)}
-                >
-                  <td className="max-w-xs px-6 py-4 font-medium text-slate-900">
-                    <div className="truncate">{doc.name}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge color="gray">{doc.department.name}</Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge color={TYPE_COLORS[doc.type] ?? "gray"}>
-                      {doc.type.toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="mr-1">v{doc.version}</span>
-                    {doc.isLatest && (
-                      <Badge color="success" className="inline">
-                        Latest
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge color={STATUS_COLORS[doc.status] ?? "gray"}>
-                      {doc.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    {new Date(doc.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div
-                      className="flex gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        size="xs"
-                        color="gray"
-                        onClick={() => setSelectedDoc(doc)}
-                      >
+                <TableRow key={doc.id} className="hover:bg-slate-50">
+                  <TableCell className="max-w-[260px]">
+                    <div className="truncate font-medium text-slate-900">{doc.name}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge>{doc.department.name}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{doc.type.toUpperCase()}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span>v{doc.version}</span>
+                      {doc.isLatest ? <Badge variant="success">Latest</Badge> : null}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant(doc.status)}>{doc.status}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button size="icon" variant="outline" onClick={() => setSelectedDoc(doc)} aria-label={`View ${doc.name}`}>
                         <HiEye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="xs"
-                        color="failure"
-                        onClick={() => setDeleteConfirm(doc.id)}
-                      >
-                        <HiTrash className="h-4 w-4 text-red-500" />
+                      <Button size="icon" variant="destructive" onClick={() => setDeleteConfirm(doc.id)} aria-label={`Delete ${doc.name}`}>
+                        <HiTrash className="h-4 w-4" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 
-      {/* Detail Modal */}
-      <Modal
-        show={!!selectedDoc}
-        onClose={() => setSelectedDoc(null)}
-        position="center"
-        size="3xl"
-        theme={centeredBlurModalTheme}
+      <Dialog
+        open={!!selectedDoc}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDoc(null);
+        }}
+        title="File details"
       >
-        <Modal.Header>Document Details</Modal.Header>
-        <Modal.Body>
-          {selectedDoc && (
-            <dl className="space-y-3">
-              {[
-                ["Name", selectedDoc.name],
-                ["Department", selectedDoc.department.name],
-                ["Type", selectedDoc.type],
-                ["Version", `v${selectedDoc.version}${selectedDoc.isLatest ? " (Latest)" : ""}`],
-                ["Status", selectedDoc.status],
-                ["Uploaded By", selectedDoc.uploadedBy.email],
-                ["Uploaded At", new Date(selectedDoc.createdAt).toLocaleString()],
-                ...(selectedDoc.sourceUrl ? [["Source URL", selectedDoc.sourceUrl]] : []),
-                ...(selectedDoc.filePath ? [["File Path", selectedDoc.filePath]] : []),
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-sm font-medium text-gray-500">{label}</dt>
-                  <dd className="mt-1 text-sm text-gray-900 break-all">{value}</dd>
-                </div>
-              ))}
-              {selectedDoc.errorMessage && (
-                <Alert color="failure">
-                  <p className="font-medium">Error</p>
-                  <p>{selectedDoc.errorMessage}</p>
-                </Alert>
-              )}
-            </dl>
-          )}
-        </Modal.Body>
-      </Modal>
+        {selectedDoc ? (
+          <dl className="space-y-3 text-sm">
+            <div>
+              <dt className="font-medium text-slate-900">Name</dt>
+              <dd className="text-slate-600">{selectedDoc.name}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-slate-900">Team</dt>
+              <dd className="text-slate-600">{selectedDoc.department.name}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-slate-900">Type</dt>
+              <dd className="text-slate-600">{selectedDoc.type}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-slate-900">Status</dt>
+              <dd className="text-slate-600">{selectedDoc.status}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-slate-900">Added by</dt>
+              <dd className="text-slate-600">{selectedDoc.uploadedBy.name ?? selectedDoc.uploadedBy.email}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-slate-900">Added on</dt>
+              <dd className="text-slate-600">{new Date(selectedDoc.createdAt).toLocaleString()}</dd>
+            </div>
+            {selectedDoc.sourceUrl ? (
+              <div>
+                <dt className="font-medium text-slate-900">Source URL</dt>
+                <dd className="break-all text-slate-600">{selectedDoc.sourceUrl}</dd>
+              </div>
+            ) : null}
+            {selectedDoc.filePath ? (
+              <div>
+                <dt className="font-medium text-slate-900">File path</dt>
+                <dd className="break-all text-slate-600">{selectedDoc.filePath}</dd>
+              </div>
+            ) : null}
+            {selectedDoc.errorMessage ? (
+              <Alert variant="destructive">{selectedDoc.errorMessage}</Alert>
+            ) : null}
+          </dl>
+        ) : null}
+      </Dialog>
 
-      {/* Delete Confirm Modal */}
-      <Modal show={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} size="sm">
-        <Modal.Header className="px-3 py-2">Confirm Delete</Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to delete this document and all its embeddings?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            color="dark"
-            onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
-          >
-            Delete
-          </Button>
-          <Button color="gray" onClick={() => setDeleteConfirm(null)}>
-            Cancel
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <Dialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirm(null);
+        }}
+        title="Delete file"
+        maxWidthClassName="max-w-md"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirm) handleDelete(deleteConfirm);
+              }}
+            >
+              Delete file
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          This will remove the file and its embeddings from search results. This action cannot be undone.
+        </p>
+      </Dialog>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Spinner } from "flowbite-react";
 import DepartmentCard from "@/components/admin/DepartmentCard";
 
 interface Department {
@@ -17,7 +16,7 @@ export default function DepartmentsPage() {
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/departments");
-    const data = await res.json() as Department[];
+    const data = (await res.json()) as Department[];
     setDepartments(data);
     setLoading(false);
   }, []);
@@ -26,25 +25,21 @@ export default function DepartmentsPage() {
     fetchDepartments();
   }, [fetchDepartments]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Compact page header */}
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-3xl font-bold text-slate-950">Departments</h1>
-        <span className="text-sm text-slate-500">
-          Admin · Organize your knowledge by team and function
-        </span>
-      </div>
+      <section className="admin-shell">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Teams</p>
+        <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Manage team ownership</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
+          Keep team ownership clear so people can find and maintain the right sources quickly.
+        </p>
+      </section>
 
-      <DepartmentCard departments={departments} onRefresh={fetchDepartments} />
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading teams...</div>
+      ) : (
+        <DepartmentCard departments={departments} onRefresh={fetchDepartments} />
+      )}
     </div>
   );
 }

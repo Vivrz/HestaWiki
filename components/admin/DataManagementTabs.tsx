@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { HiOutlineUpload, HiOutlineDocumentText } from "react-icons/hi";
+import { HiOutlineDocumentText, HiOutlineUpload } from "react-icons/hi";
 import UploadTabs from "@/components/admin/UploadTabs";
 import DocumentTable from "@/components/admin/DocumentTable";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface DataManagementTabsProps {
   initialTab: "upload" | "documents";
@@ -11,40 +14,30 @@ interface DataManagementTabsProps {
 }
 
 const tabs = [
-  { id: "upload" as const, label: "Upload documents", icon: HiOutlineUpload },
-  { id: "documents" as const, label: "Manage documents", icon: HiOutlineDocumentText },
+  { id: "upload" as const, label: "Add files", icon: HiOutlineUpload },
+  { id: "documents" as const, label: "Review files", icon: HiOutlineDocumentText },
 ];
 
 export default function DataManagementTabs({ initialTab, initialDept }: DataManagementTabsProps) {
   const [activeTab, setActiveTab] = useState<"upload" | "documents">(initialTab);
 
   return (
-    <div className="space-y-5">
-      {/* Tab switcher */}
-      <div className="flex gap-1 border-b border-slate-200">
+    <Card className="p-4 sm:p-6">
+      <div className="mb-5 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
         {tabs.map(({ id, label, icon: Icon }) => (
-          <button
+          <Button
             key={id}
-            type="button"
+            variant={activeTab === id ? "default" : "secondary"}
             onClick={() => setActiveTab(id)}
-            className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-all ${
-              activeTab === id
-                ? "border-sky-600 text-sky-700"
-                : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
-            }`}
+            className={cn(activeTab === id ? "bg-slate-950" : "bg-slate-100")}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4" aria-hidden="true" />
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
-      {/* Tab content */}
-      {activeTab === "upload" ? (
-        <UploadTabs initialDept={initialDept} />
-      ) : (
-        <DocumentTable />
-      )}
-    </div>
+      {activeTab === "upload" ? <UploadTabs initialDept={initialDept} /> : <DocumentTable />}
+    </Card>
   );
 }
