@@ -39,6 +39,13 @@ export default function RootLayout({
                 } else {
                   document.documentElement.classList.remove('chat-dark');
                 }
+                if (localStorage.getItem('admin-theme') === 'light') {
+                  document.documentElement.classList.add('admin-light');
+                  document.documentElement.classList.remove('admin-dark');
+                } else {
+                  document.documentElement.classList.add('admin-dark');
+                  document.documentElement.classList.remove('admin-light');
+                }
               } catch (_) {}
             `,
           }}

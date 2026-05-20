@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
+import { AdminPanel } from "@/components/admin/AdminUI";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { HiEye, HiOutlineOfficeBuilding, HiPlus, HiTrash, HiUpload } from "react-icons/hi";
@@ -99,27 +99,46 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
 
   return (
     <div className="space-y-5">
-      <Card>
-        <CardHeader className="pb-3">
+      <AdminPanel className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>Team directory</CardTitle>
-              <CardDescription>
+              <h2 className="text-lg font-semibold text-[var(--admin-text)]">Team directory</h2>
+              <p className="mt-1 text-sm text-[var(--admin-text)]">
                 {departments.length} team{departments.length === 1 ? "" : "s"} total
-              </CardDescription>
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant={filter === "all" ? "default" : "secondary"} size="sm" onClick={() => setFilter("all")}>All</Button>
-              <Button variant={filter === "needs" ? "default" : "secondary"} size="sm" onClick={() => setFilter("needs")}>Needs files</Button>
-              <Button variant={filter === "covered" ? "default" : "secondary"} size="sm" onClick={() => setFilter("covered")}>Covered</Button>
+              <Button
+                variant={filter === "all" ? "default" : "secondary"}
+                size="sm"
+                className={filter === "all" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                onClick={() => setFilter("all")}
+              >
+                All
+              </Button>
+              <Button
+                variant={filter === "needs" ? "default" : "secondary"}
+                size="sm"
+                className={filter === "needs" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                onClick={() => setFilter("needs")}
+              >
+                Needs files
+              </Button>
+              <Button
+                variant={filter === "covered" ? "default" : "secondary"}
+                size="sm"
+                className={filter === "covered" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                onClick={() => setFilter("covered")}
+              >
+                Covered
+              </Button>
               <Button size="sm" onClick={() => setShowAdd(true)}>
                 <HiPlus className="h-4 w-4" />
                 Add team
               </Button>
             </div>
           </div>
-        </CardHeader>
-      </Card>
+      </AdminPanel>
 
       {error ? <Alert variant="destructive">{error}</Alert> : null}
 
@@ -131,36 +150,36 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           const tone = toneForDepartment(dept.name);
 
           return (
-            <Card key={dept.id} className="border-slate-200 shadow-none">
-              <CardContent className="space-y-4 p-4">
+            <AdminPanel key={dept.id} className="p-4">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}>
                     <HiOutlineOfficeBuilding className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-xl font-semibold text-slate-900">{dept.name}</p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-xl font-semibold text-[var(--admin-text)]">{dept.name}</p>
+                    <p className="text-sm text-[var(--admin-text)]">
                       {docCount} document{docCount === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
 
-                <div className="h-px bg-slate-200" />
+                <div className="h-px bg-[var(--admin-panel-border)]" />
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <p className="text-2xl font-semibold text-slate-900">{docCount}</p>
-                    <p className="text-xs text-slate-400">docs</p>
+                    <p className="text-2xl font-semibold text-[var(--admin-text)]">{docCount}</p>
+                    <p className="text-xs text-[var(--admin-text)]">docs</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-slate-900">{queryCount}</p>
-                    <p className="text-xs text-slate-400">queries</p>
+                    <p className="text-2xl font-semibold text-[var(--admin-text)]">{queryCount}</p>
+                    <p className="text-xs text-[var(--admin-text)]">queries</p>
                   </div>
                   <div>
-                    <p className={`text-2xl font-semibold ${needsAction ? "text-slate-400" : "text-emerald-600"}`}>
+                    <p className={`text-2xl font-semibold ${needsAction ? "text-[var(--admin-text)]" : "text-emerald-400"}`}>
                       {needsAction ? "Empty" : "Active"}
                     </p>
-                    <p className="text-xs text-slate-400">status</p>
+                    <p className="text-xs text-[var(--admin-text)]">status</p>
                   </div>
                 </div>
 
@@ -168,7 +187,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 px-3 text-xs"
+                    className="h-8 border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] px-3 text-xs text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=upload&dept=${dept.id}`)}
                   >
                     <HiUpload className="h-3.5 w-3.5" />
@@ -177,7 +196,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 px-3 text-xs"
+                    className="h-8 border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] px-3 text-xs text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=documents&dept=${dept.id}`)}
                   >
                     <HiEye className="h-3.5 w-3.5" />
@@ -190,7 +209,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                       if (docCount === 0) setDeleteConfirm(dept);
                     }}
                     className={`ml-auto rounded-md p-1.5 ${
-                      docCount === 0 ? "text-rose-400 hover:bg-rose-50 hover:text-rose-600" : "cursor-not-allowed text-slate-300"
+                      docCount === 0 ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300" : "cursor-not-allowed text-[var(--admin-faint)]"
                     }`}
                     aria-label={docCount === 0 ? `Delete ${dept.name}` : `${dept.name} cannot be deleted while documents exist`}
                     title={docCount === 0 ? "Delete department" : "Cannot delete while documents are assigned"}
@@ -198,8 +217,8 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                     <HiTrash className="h-4 w-4" />
                   </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </AdminPanel>
           );
         })}
 
@@ -207,7 +226,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex min-h-[250px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white text-slate-400 transition hover:border-sky-300 hover:text-sky-600"
+            className="flex min-h-[250px] items-center justify-center rounded-[22px] border-2 border-dashed border-[var(--admin-panel-border)] bg-[var(--admin-panel)] text-[var(--admin-text)] transition hover:text-[var(--admin-text)]"
           >
             <span className="flex flex-col items-center gap-2">
               <HiPlus className="h-7 w-7" />
@@ -225,12 +244,13 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
       >
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="team-name" className="text-sm font-medium text-slate-700">Team name</label>
+            <label htmlFor="team-name" className="text-sm font-medium text-[var(--admin-text)]">Team name</label>
             <Input
               id="team-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Marketing"
+              className="border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)] placeholder:text-[var(--admin-text)]"
               required
             />
           </div>
@@ -263,8 +283,8 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           </div>
         }
       >
-        <p className="text-sm text-slate-600">
-          Delete <span className="font-semibold text-slate-900">{deleteConfirm?.name}</span>? This can only be done when no files are assigned.
+        <p className="text-sm text-[var(--admin-text)]">
+          Delete <span className="font-semibold text-[var(--admin-text)]">{deleteConfirm?.name}</span>? This can only be done when no files are assigned.
         </p>
       </Dialog>
     </div>

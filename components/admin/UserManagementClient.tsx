@@ -15,7 +15,7 @@ import {
 import { HiOutlineChatAlt2, HiOutlineClock, HiOutlineUsers } from "react-icons/hi";
 import { AdminUser, UsagePoint, UserRole } from "./types";
 import UserList from "./UserList";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminMetricTile, AdminPageHeader, AdminPanel } from "@/components/admin/AdminUI";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
@@ -34,35 +34,6 @@ interface UserManagementClientProps {
   };
 }
 
-function MetricTile({
-  label,
-  value,
-  insight,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  insight: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardDescription>{label}</CardDescription>
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
-            {icon}
-          </span>
-        </div>
-        <CardTitle className="text-3xl">{value}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-slate-600">{insight}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ChartTooltipContent({
   active,
   payload,
@@ -75,14 +46,93 @@ function ChartTooltipContent({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
-      <p className="mb-1 text-xs font-semibold text-slate-500">{label}</p>
+    <div className="rounded-lg border border-[var(--admin-panel-border)] bg-[var(--admin-panel)] px-3 py-2 text-sm shadow-lg">
+      <p className="mb-1 text-xs font-semibold text-[var(--admin-text)]">{label}</p>
       {payload.map((entry) => (
         <p key={entry.name} style={{ color: entry.color }}>
           {entry.name}: <span className="font-semibold">{entry.value}</span>
         </p>
       ))}
     </div>
+  );
+}
+
+function TrendCardHeader({
+  title,
+  subtitle,
+  rangeLabel,
+}: {
+  title: string;
+  subtitle: string;
+  rangeLabel: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h2 className="text-sm font-semibold text-[var(--admin-text)]">{title}</h2>
+        <p className="mt-1 text-xs text-[var(--admin-text)]">{subtitle}</p>
+      </div>
+      <span className="rounded-lg bg-[var(--admin-panel-soft)] px-3 py-1.5 text-xs font-medium text-[var(--admin-text)]">
+        {rangeLabel}
+      </span>
+    </div>
+  );
+}
+
+function WeeklyTrendCard({
+  data,
+}: {
+  data: UsagePoint[];
+}) {
+  return (
+    <AdminPanel className="p-5">
+      <TrendCardHeader title="Weekly trend" subtitle="Total for the last 7 days" rangeLabel="Last 7 days" />
+      <div className="mt-7 h-[235px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="weeklyTrend-primary" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--admin-chart-primary-fill-start)" />
+                <stop offset="100%" stopColor="var(--admin-chart-primary-fill-end)" />
+              </linearGradient>
+              <linearGradient id="weeklyTrend-secondary" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--admin-chart-secondary-fill-start)" />
+                <stop offset="100%" stopColor="var(--admin-chart-secondary-fill-end)" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--admin-chart-grid)" />
+            <XAxis dataKey="label" axisLine={{ stroke: "var(--admin-chart-axis)" }} tickLine={false} tick={{ fontSize: 11, fill: "var(--admin-chart-axis)" }} dy={8} />
+            <YAxis hide />
+            <Tooltip content={<ChartTooltipContent />} />
+            <Area type="monotone" dataKey="chats" name="Chats" stroke="var(--admin-chart-primary)" strokeWidth={2} fill="url(#weeklyTrend-primary)" />
+            <Area type="monotone" dataKey="users" name="Users" stroke="var(--admin-chart-secondary)" strokeWidth={2} fill="url(#weeklyTrend-secondary)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </AdminPanel>
+  );
+}
+
+function MonthlyTrendCard({
+  data,
+}: {
+  data: UsagePoint[];
+}) {
+  return (
+    <AdminPanel className="p-5">
+      <TrendCardHeader title="Monthly trend" subtitle="Total for the last 30 days" rangeLabel="Last 30 days" />
+      <div className="mt-7 h-[235px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--admin-chart-grid)" />
+            <XAxis dataKey="label" axisLine={{ stroke: "var(--admin-chart-axis)" }} tickLine={false} tick={{ fontSize: 11, fill: "var(--admin-chart-axis)" }} dy={8} />
+            <YAxis hide />
+            <Tooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="chats" name="Chats" fill="var(--admin-chart-primary)" radius={[7, 7, 0, 0]} maxBarSize={72} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </AdminPanel>
   );
 }
 
@@ -114,40 +164,34 @@ export default function UserManagementClient({
 
   return (
     <div className="space-y-6">
-      <section className="admin-shell">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Users</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Understand who is using chat</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
-          Review user activity, inspect chat history, and find people who need onboarding support.
-        </p>
-      </section>
+      <AdminPageHeader title="Users" subtitle="Review user activity, inspect chat history, and find people who need onboarding support." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricTile
+        <AdminMetricTile
           label="Users active this week"
           value={usageStats.weeklyActiveUsers}
           insight="Users who started at least one chat in the last 7 days."
           icon={<HiOutlineUsers className="h-5 w-5" />}
         />
-        <MetricTile
+        <AdminMetricTile
           label="Users active this month"
           value={usageStats.monthlyActiveUsers}
           insight="Monthly active users across all teams."
           icon={<HiOutlineUsers className="h-5 w-5" />}
         />
-        <MetricTile
+        <AdminMetricTile
           label="Average chat length"
           value={`${usageStats.avgSessionMinutes}m`}
           insight="Average minutes from first to last message."
           icon={<HiOutlineClock className="h-5 w-5" />}
         />
-        <MetricTile
+        <AdminMetricTile
           label="Average chats per person"
           value={usageStats.avgSessionsPerUser}
           insight="How many sessions each user starts on average."
           icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
         />
-        <MetricTile
+        <AdminMetricTile
           label="Total chats this month"
           value={usageStats.totalChatsThisMonth.toLocaleString()}
           insight="Total sessions started in the current month."
@@ -156,68 +200,27 @@ export default function UserManagementClient({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Weekly trend</CardTitle>
-            <CardDescription>Shows whether usage is rising or dropping over the last 7 days.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={weeklyUsage}>
-                <defs>
-                  <linearGradient id="weeklyGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0EA5A4" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#0EA5A4" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis hide />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Area type="monotone" dataKey="chats" name="Chats" stroke="#0EA5A4" strokeWidth={2} fill="url(#weeklyGradient)" />
-                <Area type="monotone" dataKey="users" name="Users" stroke="#6366f1" strokeWidth={2} fill="none" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly trend</CardTitle>
-            <CardDescription>Compares monthly chat volume over the last 6 months.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthlyUsage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis hide />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="chats" name="Chats" fill="#0EA5A4" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <WeeklyTrendCard data={weeklyUsage} />
+        <MonthlyTrendCard data={monthlyUsage} />
       </div>
 
-      <Card>
-        <CardHeader>
+      <AdminPanel className="p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle>Users and chat history</CardTitle>
-              <CardDescription>Search people, then expand rows to inspect full conversations.</CardDescription>
+              <h2 className="text-lg font-semibold text-[var(--admin-text)]">Users and chat history</h2>
+              <p className="mt-1 text-sm text-[var(--admin-text)]">Search people, then expand rows to inspect full conversations.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 placeholder="Search by name or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="min-w-[220px]"
+                className="min-w-[220px] border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)] placeholder:text-[var(--admin-text)]"
               />
               <Select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="min-w-[160px]"
+                className="min-w-[160px] border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)]"
               >
                 <option value="">All roles</option>
                 {ROLES.map((role) => (
@@ -228,11 +231,10 @@ export default function UserManagementClient({
               </Select>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        <div className="mt-5">
           <UserList users={filteredUsers} />
-        </CardContent>
-      </Card>
+        </div>
+      </AdminPanel>
     </div>
   );
 }

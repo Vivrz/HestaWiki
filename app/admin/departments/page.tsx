@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import DepartmentCard from "@/components/admin/DepartmentCard";
+import { AdminPageHeader, AdminPanel } from "@/components/admin/AdminUI";
 
 interface Department {
   id: string;
@@ -27,16 +28,10 @@ export default function DepartmentsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="admin-shell">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Departments</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Manage team ownership</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
-          Keep team ownership clear so people can find and maintain the right sources quickly.
-        </p>
-      </section>
+      <AdminPageHeader title="Departments" subtitle="Keep team ownership clear so people can find and maintain the right sources quickly." />
 
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading teams...</div>
+        <AdminPanel className="p-10 text-center text-sm text-[var(--admin-text)]">Loading teams...</AdminPanel>
       ) : (
         <DepartmentCard departments={departments} onRefresh={fetchDepartments} />
       )}

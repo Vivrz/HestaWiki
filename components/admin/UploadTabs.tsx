@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPanel } from "@/components/admin/AdminUI";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { HiCheckCircle, HiDocumentText, HiExclamationCircle, HiLink, HiUpload } from "react-icons/hi";
@@ -142,14 +142,13 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_330px]">
-      <Card className="border-slate-200">
-        <CardHeader className="pb-3">
-          <div className="flex gap-5 border-b border-slate-200 pb-3">
+      <AdminPanel className="p-5">
+          <div className="flex gap-5 border-b border-[var(--admin-panel-border)] pb-3">
             <button
               type="button"
               onClick={() => setActiveTab("file")}
               className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm font-medium ${
-                activeTab === "file" ? "border-teal-500 text-slate-900" : "border-transparent text-slate-500"
+                activeTab === "file" ? "border-zinc-100 text-[var(--admin-text)]" : "border-transparent text-[var(--admin-text)]"
               }`}
             >
               <HiUpload className="h-4 w-4" />
@@ -159,39 +158,38 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
               type="button"
               onClick={() => setActiveTab("url")}
               className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm font-medium ${
-                activeTab === "url" ? "border-teal-500 text-slate-900" : "border-transparent text-slate-500"
+                activeTab === "url" ? "border-zinc-100 text-[var(--admin-text)]" : "border-transparent text-[var(--admin-text)]"
               }`}
             >
               <HiLink className="h-4 w-4" />
               Upload via URL
             </button>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-4">
+        <div className="mt-5 space-y-4">
           {activeTab === "file" ? (
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 px-6 py-12 text-center"
+              className="w-full rounded-2xl border-2 border-dashed border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] px-6 py-12 text-center"
             >
-              <div className="mx-auto flex w-fit items-center justify-center rounded-full bg-white p-2 text-slate-500">
+              <div className="mx-auto flex w-fit items-center justify-center rounded-full bg-[var(--admin-panel)] p-2 text-[var(--admin-text)]">
                 <HiUpload className="h-5 w-5" />
               </div>
-              <p className="mt-4 text-xl font-semibold text-slate-900">Drop files to ingest</p>
-              <p className="text-sm text-slate-500">or click to browse</p>
+              <p className="mt-4 text-xl font-semibold text-[var(--admin-text)]">Drop files to ingest</p>
+              <p className="text-sm text-[var(--admin-text)]">or click to browse</p>
               <div className="mt-4 flex justify-center gap-2">
                 <Badge>PDF</Badge>
                 <Badge>TXT</Badge>
                 <Badge>MD</Badge>
               </div>
-              <p className="mt-3 text-xs text-slate-400">Max size: 50MB</p>
+              <p className="mt-3 text-xs text-[var(--admin-faint)]">Max size: 50MB</p>
             </button>
           ) : (
-            <div className="rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 p-6">
-              <p className="text-sm font-medium text-slate-900">Paste page URL to ingest</p>
+            <div className="rounded-2xl border-2 border-dashed border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] p-6">
+              <p className="text-sm font-medium text-[var(--admin-text)]">Paste page URL to ingest</p>
               <Input
-                className="mt-3"
+                className="mt-3 border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)] placeholder:text-[var(--admin-text)]"
                 placeholder="https://www.hestabit.com/policy"
                 value={url}
                 onChange={(e) => {
@@ -199,7 +197,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
                   setResult({ kind: "idle" });
                 }}
               />
-              <p className="mt-2 text-xs text-slate-500">Use a publicly accessible or internal URL.</p>
+              <p className="mt-2 text-xs text-[var(--admin-text)]">Use a publicly accessible or internal URL.</p>
             </div>
           )}
 
@@ -212,14 +210,14 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
           />
 
           {selectedFile && activeTab === "file" ? (
-            <p className="text-sm text-slate-600">
-              Selected file: <span className="font-medium text-slate-900">{selectedFile.name}</span>
+            <p className="text-sm text-[var(--admin-text)]">
+              Selected file: <span className="font-medium text-[var(--admin-text)]">{selectedFile.name}</span>
             </p>
           ) : null}
 
           <div className="space-y-2">
-            <label htmlFor="department" className="text-sm font-medium text-slate-700">Department</label>
-            <Select id="department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+            <label htmlFor="department" className="text-sm font-medium text-[var(--admin-text)]">Department</label>
+            <Select id="department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)]">
               <option value="">Select department...</option>
               {departments.map((department) => (
                 <option key={department.id} value={department.id}>
@@ -232,7 +230,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="bg-teal-600 hover:bg-teal-700"
+            className="bg-[var(--admin-button)] text-[var(--admin-button-text)] hover:bg-black"
           >
             {uploading ? "Submitting..." : "Begin ingestion"}
           </Button>
@@ -250,37 +248,35 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
               <span>{result.message}</span>
             </Alert>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      </AdminPanel>
 
-      <Card className="border-slate-200">
-        <CardHeader className="pb-2">
+      <AdminPanel className="p-5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">Ingestion queue</CardTitle>
-            <p className="text-xs font-medium text-slate-400">{queueDocs.length} items</p>
+            <h2 className="text-xl font-semibold text-[var(--admin-text)]">Ingestion queue</h2>
+            <p className="text-xs font-medium text-[var(--admin-text)]">{queueDocs.length} items</p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        <div className="mt-4 space-y-2">
           {queueDocs.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            <p className="rounded-xl border border-dashed border-[var(--admin-panel-border)] p-6 text-center text-sm text-[var(--admin-text)]">
               No files in queue yet.
             </p>
           ) : (
             queueDocs.map((doc) => (
-              <div key={doc.id} className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3 last:border-b-0">
+              <div key={doc.id} className="flex items-start justify-between gap-3 border-b border-[var(--admin-panel-border)] pb-3 last:border-b-0">
                 <div className="flex min-w-0 items-start gap-2">
-                  <HiDocumentText className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <HiDocumentText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--admin-text)]" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">{doc.name}</p>
-                    <p className="text-xs text-slate-500">{doc.department.name} · {doc.type.toUpperCase()}</p>
+                    <p className="truncate text-sm font-medium text-[var(--admin-text)]">{doc.name}</p>
+                    <p className="text-xs text-[var(--admin-text)]">{doc.department.name} · {doc.type.toUpperCase()}</p>
                   </div>
                 </div>
                 <Badge variant={statusVariant(doc.status)}>{doc.status}</Badge>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </AdminPanel>
     </div>
   );
 }

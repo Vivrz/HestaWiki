@@ -59,6 +59,55 @@
     --accent: #6B63D4;
   }
 
+  :root,
+  :root.admin-dark {
+    --admin-bg: linear-gradient(to bottom, #e4e4e4 0, #e4e4e4 45%, #262626 45%, #262626 100%);
+    --admin-panel: #262626;
+    --admin-panel-soft: rgba(255, 255, 255, 0.04);
+    --admin-panel-border: rgba(255, 255, 255, 0.1);
+    --admin-text: #ffffff;
+    --admin-muted: #a1a1aa;
+    --admin-faint: #71717a;
+    --admin-control: rgba(0, 0, 0, 0.1);
+    --admin-control-text: #3f3f46;
+    --admin-button: #1d1d1c;
+    --admin-button-text: #ffffff;
+    --admin-table-head-bg: #1d1d1c;
+    --admin-table-head-text: #ffffff;
+    --admin-chart-primary: #d6d6d6;
+    --admin-chart-secondary: #bdbdbd;
+    --admin-chart-grid: rgba(255, 255, 255, 0.06);
+    --admin-chart-axis: #71717a;
+    --admin-chart-primary-fill-start: rgba(244, 244, 245, 0.78);
+    --admin-chart-primary-fill-end: rgba(244, 244, 245, 0.08);
+    --admin-chart-secondary-fill-start: rgba(212, 212, 216, 0.46);
+    --admin-chart-secondary-fill-end: rgba(212, 212, 216, 0.04);
+  }
+
+  :root.admin-light {
+    --admin-bg: linear-gradient(to bottom, #e4e4e4 0, #e4e4e4 45%, #262626 45%, #262626 100%);
+    --admin-panel: #ffffff;
+    --admin-panel-soft: rgba(0, 0, 0, 0.035);
+    --admin-panel-border: rgba(0, 0, 0, 0.1);
+    --admin-text: #18181b;
+    --admin-muted: #52525b;
+    --admin-faint: #71717a;
+    --admin-control: rgba(0, 0, 0, 0.08);
+    --admin-control-text: #27272a;
+    --admin-button: #161616;
+    --admin-button-text: #ffffff;
+    --admin-table-head-bg: #eef2f7;
+    --admin-table-head-text: #334155;
+    --admin-chart-primary: #1aa6a6;
+    --admin-chart-secondary: #7c5cff;
+    --admin-chart-grid: #e7edf5;
+    --admin-chart-axis: #6b7280;
+    --admin-chart-primary-fill-start: rgba(26, 166, 166, 0.18);
+    --admin-chart-primary-fill-end: rgba(26, 166, 166, 0);
+    --admin-chart-secondary-fill-start: rgba(124, 92, 255, 0.12);
+    --admin-chart-secondary-fill-end: rgba(124, 92, 255, 0);
+  }
+
   *,
   *::before,
   *::after {
