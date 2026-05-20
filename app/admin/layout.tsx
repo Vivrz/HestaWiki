@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import AdminSidebar, { SidebarContent } from "@/components/admin/Sidebar";
+import HestawikiWordmark from "@/components/admin/HestawikiWordmark";
 import { HiMenuAlt2, HiX } from "react-icons/hi";
 
 export default function AdminLayout({
@@ -52,7 +53,7 @@ export default function AdminLayout({
             >
               <HiMenuAlt2 className="h-5 w-5" />
             </button>
-            <span className="font-medium">Hestawiki Admin</span>
+            <HestawikiWordmark tone="light" size="sm" />
           </div>
           <div className="flex-1">{children}</div>
         </div>

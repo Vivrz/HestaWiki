@@ -10,9 +10,9 @@ import {
   HiOutlineOfficeBuilding,
   HiChat,
   HiLogout,
-  HiSparkles,
 } from "react-icons/hi";
 import { cn } from "@/lib/utils";
+import HestawikiWordmark from "@/components/admin/HestawikiWordmark";
 
 interface NavItem {
   href: string;
@@ -41,10 +41,7 @@ function SidebarContent({ onNavigate }: SidebarContentProps) {
         onClick={onNavigate}
         className="rounded-3xl border border-white/10 bg-white/5 p-4 transition hover:bg-white/10"
       >
-        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-cyan-300 to-emerald-300 text-slate-950 shadow-lg">
-          <HiSparkles className="h-6 w-6" />
-        </div>
-        <p className="font-display text-lg font-semibold text-white">Hestawiki</p>
+        <HestawikiWordmark tone="dark" />
         <p className="mt-1 text-sm text-slate-300">Operations workspace</p>
       </Link>
 
