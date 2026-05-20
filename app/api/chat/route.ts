@@ -22,6 +22,29 @@ const chatRequestSchema = z.object({
   message: z.string().trim().min(1).max(4000),
 });
 
+function generateSessionTitle(message: string): string {
+  const cleaned = message
+    .replace(/\s+/g, " ")
+    .replace(/[^\w\s-]/g, " ")
+    .trim();
+
+  if (!cleaned) return "New Chat";
+
+  const stopWords = new Set([
+    "the", "a", "an", "is", "are", "to", "for", "in", "on", "at", "of",
+    "and", "or", "but", "with", "please", "can", "you", "me", "i", "we",
+    "my", "our", "this", "that", "these", "those", "about", "from",
+  ]);
+
+  const words = cleaned.split(" ").filter(Boolean);
+  const keyWords = words.filter((word) => !stopWords.has(word.toLowerCase()));
+  const selectedWords = (keyWords.length >= 3 ? keyWords : words).slice(0, 7);
+  const title = selectedWords.join(" ").slice(0, 72).trim();
+
+  if (!title) return "New Chat";
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
 export async function POST(req: NextRequest) {
   const originError = validateMutationRequestOrigin(req);
   if (originError) return originError;
@@ -165,7 +188,7 @@ export async function POST(req: NextRequest) {
 
         // Update session title from first message if still default
         if (chatSession.title === "New Chat") {
-          const title = message.slice(0, 60);
+          const title = generateSessionTitle(message);
           await prisma.chatSession.update({
             where: { id: sessionId },
             data: { title },
