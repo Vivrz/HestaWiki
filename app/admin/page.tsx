@@ -82,14 +82,14 @@ async function getDashboardData() {
     })),
     ...recentSessions.map((session) => ({
       at: session.createdAt,
-      area: "People",
+      area: "Users",
       event: `Chat started (${session._count.messages} messages)`,
       actor: session.user.name ?? session.user.email ?? "Unknown",
       status: "active",
     })),
     ...recentTeams.map((team) => ({
       at: team.createdAt,
-      area: "Teams",
+      area: "Departments",
       event: `Team created: ${team.name}`,
       actor: "Admin",
       status: "created",
@@ -181,7 +181,7 @@ export default async function AdminDashboard() {
       <section className="admin-shell">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Overview</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Dashboard</p>
             <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Operations command center</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
               Check what needs attention, resolve issues, and keep your team knowledge ready for answers.
@@ -238,17 +238,17 @@ export default async function AdminDashboard() {
           actionHref="/admin/data-management?tab=documents"
         />
         <MetricCard
-          title="Teams missing files"
+          title="Departments missing files"
           value={teamsWithNoFiles}
-          helper="Teams without any latest files assigned."
-          actionLabel="Update teams"
+          helper="Departments without any latest files assigned."
+          actionLabel="Update departments"
           actionHref="/admin/departments"
         />
         <MetricCard
           title="Inactive users (7d)"
           value={`${inactiveUsers7d}/${totalUsers}`}
-          helper="People who did not start a chat this week."
-          actionLabel="Open people"
+          helper="Users who did not start a chat this week."
+          actionLabel="Open users"
           actionHref="/admin/users"
         />
       </div>

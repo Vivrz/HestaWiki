@@ -28,7 +28,7 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-6">
       <section className="admin-shell">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Teams</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Departments</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Manage team ownership</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
           Keep team ownership clear so people can find and maintain the right sources quickly.

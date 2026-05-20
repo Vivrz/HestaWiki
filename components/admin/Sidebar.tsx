@@ -21,10 +21,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/admin", label: "Overview", icon: HiOutlineHome },
-  { href: "/admin/data-management", label: "Files & Links", icon: HiOutlineDatabase },
-  { href: "/admin/departments", label: "Teams", icon: HiOutlineOfficeBuilding },
-  { href: "/admin/users", label: "People", icon: HiOutlineUsers },
+  { href: "/admin", label: "Dashboard", icon: HiOutlineHome },
+  { href: "/admin/users", label: "Users", icon: HiOutlineUsers },
+  { href: "/admin/data-management", label: "Data Management", icon: HiOutlineDatabase },
+  { href: "/admin/departments", label: "Departments", icon: HiOutlineOfficeBuilding },
 ];
 
 interface SidebarContentProps {
