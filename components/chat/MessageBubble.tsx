@@ -99,7 +99,7 @@ export default function MessageBubble({
         <>
           <div className="flex max-w-[65%] flex-col items-end">
             <div className="rounded-[18px_18px_4px_18px] px-4 py-[11px] text-[14px] leading-relaxed text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
-              <p className="whitespace-pre-wrap">{content}</p>
+              <p className="whitespace-pre-wrap break-words" style={{ overflowWrap: "anywhere" }}>{content}</p>
             </div>
             {timestamp && <p className="mr-9 mt-1 text-right text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
           </div>
@@ -117,7 +117,7 @@ export default function MessageBubble({
               <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
               {timestamp && <p className="text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
             </div>
-            <div className="max-w-[95%] rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
+            <div className="max-w-[95%] rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200 break-words" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', overflowWrap: "anywhere" }}>
               {renderAssistantContent()}
             </div>
 
