@@ -4,22 +4,30 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { HiCheckCircle, HiExclamationCircle, HiLink, HiUpload } from "react-icons/hi";
+import { HiCheckCircle, HiDocumentText, HiExclamationCircle, HiLink, HiUpload } from "react-icons/hi";
 
 interface Department {
   id: string;
   name: string;
 }
 
+interface QueueDocument {
+  id: string;
+  name: string;
+  type: string;
+  createdAt: string;
+  status: string;
+  department: { name: string };
+}
+
 interface UploadTabsProps {
   initialDept?: string;
 }
 
-type SourceType = "file" | "url";
-type Step = 1 | 2 | 3;
+type SourceTab = "file" | "url";
 
 type ResultState =
   | { kind: "idle" }
@@ -28,8 +36,8 @@ type ResultState =
 
 export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [sourceType, setSourceType] = useState<SourceType>("file");
-  const [step, setStep] = useState<Step>(1);
+  const [queueDocs, setQueueDocs] = useState<QueueDocument[]>([]);
+  const [activeTab, setActiveTab] = useState<SourceTab>("file");
   const [departmentId, setDepartmentId] = useState(initialDept);
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -42,19 +50,32 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
       .then((data: Department[]) => setDepartments(data));
   }, []);
 
+  const loadQueue = async () => {
+    try {
+      const res = await fetch("/api/admin/documents");
+      const docs = (await res.json()) as QueueDocument[];
+      const sorted = [...docs]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 7);
+      setQueueDocs(sorted);
+    } catch {
+      setQueueDocs([]);
+    }
+  };
+
+  useEffect(() => {
+    loadQueue();
+  }, []);
+
   const selectedFile = fileRef.current?.files?.[0] ?? null;
-
-  const stepOneComplete = useMemo(() => {
-    if (sourceType === "file") return !!selectedFile;
+  const canSubmit = useMemo(() => {
+    if (!departmentId || uploading) return false;
+    if (activeTab === "file") return !!selectedFile;
     return /^https?:\/\//i.test(url.trim());
-  }, [sourceType, selectedFile, url]);
+  }, [activeTab, departmentId, selectedFile, uploading, url]);
 
-  const stepTwoComplete = Boolean(departmentId);
-  const canSubmit = stepOneComplete && stepTwoComplete && !uploading;
-
-  const resetForm = () => {
+  const clearInputs = () => {
     setUrl("");
-    setStep(1);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -65,7 +86,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
     setResult({ kind: "idle" });
 
     try {
-      if (sourceType === "file") {
+      if (activeTab === "file") {
         const file = fileRef.current?.files?.[0];
         if (!file) {
           setResult({ kind: "error", message: "Please choose a file first." });
@@ -86,11 +107,9 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
           const err = (await res.json()) as { error?: string };
           setResult({ kind: "error", message: err.error ?? "Upload failed." });
         } else {
-          setResult({
-            kind: "success",
-            message: "File uploaded and queued for processing. You can review status in Review files.",
-          });
-          resetForm();
+          setResult({ kind: "success", message: "File added to ingestion queue." });
+          clearInputs();
+          await loadQueue();
         }
       } else {
         const res = await fetch("/api/admin/upload/url", {
@@ -101,13 +120,11 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
         if (!res.ok) {
           const err = (await res.json()) as { error?: string };
-          setResult({ kind: "error", message: err.error ?? "Could not queue this URL." });
+          setResult({ kind: "error", message: err.error ?? "Could not queue URL." });
         } else {
-          setResult({
-            kind: "success",
-            message: "Link added and queued for processing. You can review status in Review files.",
-          });
-          resetForm();
+          setResult({ kind: "success", message: "URL added to ingestion queue." });
+          clearInputs();
+          await loadQueue();
         }
       }
     } catch {
@@ -117,160 +134,153 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
     }
   };
 
+  const statusVariant = (status: string) => {
+    if (status === "ready") return "success" as const;
+    if (status === "failed") return "destructive" as const;
+    return "warning" as const;
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[1, 2, 3].map((stepNumber) => (
-          <button
-            key={stepNumber}
-            type="button"
-            onClick={() => {
-              if (stepNumber === 1) setStep(1);
-              if (stepNumber === 2 && stepOneComplete) setStep(2);
-              if (stepNumber === 3 && stepOneComplete && stepTwoComplete) setStep(3);
-            }}
-            className={`rounded-xl border p-4 text-left transition ${
-              step === stepNumber
-                ? "border-slate-950 bg-slate-950 text-white"
-                : "border-slate-200 bg-slate-50 text-slate-700"
-            }`}
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.16em]">Step {stepNumber}</p>
-            <p className="mt-1 text-sm font-medium">
-              {stepNumber === 1 ? "Choose source" : stepNumber === 2 ? "Assign team" : "Review and confirm"}
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_330px]">
+      <Card className="border-slate-200">
+        <CardHeader className="pb-3">
+          <div className="flex gap-5 border-b border-slate-200 pb-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab("file")}
+              className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm font-medium ${
+                activeTab === "file" ? "border-teal-500 text-slate-900" : "border-transparent text-slate-500"
+              }`}
+            >
+              <HiUpload className="h-4 w-4" />
+              Upload file
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("url")}
+              className={`inline-flex items-center gap-2 border-b-2 pb-2 text-sm font-medium ${
+                activeTab === "url" ? "border-teal-500 text-slate-900" : "border-transparent text-slate-500"
+              }`}
+            >
+              <HiLink className="h-4 w-4" />
+              Upload via URL
+            </button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {activeTab === "file" ? (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="w-full rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 px-6 py-12 text-center"
+            >
+              <div className="mx-auto flex w-fit items-center justify-center rounded-full bg-white p-2 text-slate-500">
+                <HiUpload className="h-5 w-5" />
+              </div>
+              <p className="mt-4 text-xl font-semibold text-slate-900">Drop files to ingest</p>
+              <p className="text-sm text-slate-500">or click to browse</p>
+              <div className="mt-4 flex justify-center gap-2">
+                <Badge>PDF</Badge>
+                <Badge>TXT</Badge>
+                <Badge>MD</Badge>
+              </div>
+              <p className="mt-3 text-xs text-slate-400">Max size: 50MB</p>
+            </button>
+          ) : (
+            <div className="rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/40 p-6">
+              <p className="text-sm font-medium text-slate-900">Paste page URL to ingest</p>
+              <Input
+                className="mt-3"
+                placeholder="https://www.hestabit.com/policy"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setResult({ kind: "idle" });
+                }}
+              />
+              <p className="mt-2 text-xs text-slate-500">Use a publicly accessible or internal URL.</p>
+            </div>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.txt,.md"
+            className="hidden"
+            onChange={() => setResult({ kind: "idle" })}
+          />
+
+          {selectedFile && activeTab === "file" ? (
+            <p className="text-sm text-slate-600">
+              Selected file: <span className="font-medium text-slate-900">{selectedFile.name}</span>
             </p>
-          </button>
-        ))}
-      </div>
+          ) : null}
 
-      {result.kind === "success" ? (
-        <Alert variant="success" className="flex items-start gap-2">
-          <HiCheckCircle className="mt-0.5 h-4 w-4" aria-hidden="true" />
-          <span>{result.message}</span>
-        </Alert>
-      ) : null}
-      {result.kind === "error" ? (
-        <Alert variant="destructive" className="flex items-start gap-2">
-          <HiExclamationCircle className="mt-0.5 h-4 w-4" aria-hidden="true" />
-          <span>{result.message}</span>
-        </Alert>
-      ) : null}
+          <div className="space-y-2">
+            <label htmlFor="department" className="text-sm font-medium text-slate-700">Department</label>
+            <Select id="department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+              <option value="">Select department...</option>
+              {departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-      {step === 1 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 1: Choose your source</CardTitle>
-            <CardDescription>Select a file from your computer or paste a link.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Button variant={sourceType === "file" ? "default" : "secondary"} onClick={() => setSourceType("file")}>
-                <HiUpload className="h-4 w-4" aria-hidden="true" />
-                Upload file
-              </Button>
-              <Button variant={sourceType === "url" ? "default" : "secondary"} onClick={() => setSourceType("url")}>
-                <HiLink className="h-4 w-4" aria-hidden="true" />
-                Paste link
-              </Button>
-            </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="bg-teal-600 hover:bg-teal-700"
+          >
+            {uploading ? "Submitting..." : "Begin ingestion"}
+          </Button>
 
-            {sourceType === "file" ? (
-              <div className="space-y-2">
-                <label htmlFor="source-file" className="text-sm font-medium text-slate-700">
-                  Select file (.pdf, .txt, .md)
-                </label>
-                <input
-                  id="source-file"
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf,.txt,.md"
-                  onChange={() => setResult({ kind: "idle" })}
-                  className="block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
-                />
-                <p className="text-xs text-slate-500">Maximum size: 50MB</p>
+          {result.kind === "success" ? (
+            <Alert variant="success" className="flex items-start gap-2">
+              <HiCheckCircle className="mt-0.5 h-4 w-4" />
+              <span>{result.message}</span>
+            </Alert>
+          ) : null}
+
+          {result.kind === "error" ? (
+            <Alert variant="destructive" className="flex items-start gap-2">
+              <HiExclamationCircle className="mt-0.5 h-4 w-4" />
+              <span>{result.message}</span>
+            </Alert>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl">Ingestion queue</CardTitle>
+            <p className="text-xs font-medium text-slate-400">{queueDocs.length} items</p>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {queueDocs.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+              No files in queue yet.
+            </p>
+          ) : (
+            queueDocs.map((doc) => (
+              <div key={doc.id} className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3 last:border-b-0">
+                <div className="flex min-w-0 items-start gap-2">
+                  <HiDocumentText className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-900">{doc.name}</p>
+                    <p className="text-xs text-slate-500">{doc.department.name} · {doc.type.toUpperCase()}</p>
+                  </div>
+                </div>
+                <Badge variant={statusVariant(doc.status)}>{doc.status}</Badge>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <label htmlFor="source-url" className="text-sm font-medium text-slate-700">Paste URL</label>
-                <Input
-                  id="source-url"
-                  type="url"
-                  placeholder="https://example.com/policy"
-                  value={url}
-                  onChange={(e) => {
-                    setUrl(e.target.value);
-                    setResult({ kind: "idle" });
-                  }}
-                />
-                <p className="text-xs text-slate-500">Use a public or internal page URL.</p>
-              </div>
-            )}
-
-            <div className="flex justify-end">
-              <Button disabled={!stepOneComplete} onClick={() => setStep(2)}>
-                Continue to team
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 2 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 2: Assign a team</CardTitle>
-            <CardDescription>Pick who should own and maintain this source.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="department" className="text-sm font-medium text-slate-700">Team</label>
-              <Select id="department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-                <option value="">Select team...</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex justify-between gap-2">
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button disabled={!stepTwoComplete} onClick={() => setStep(3)}>Continue to review</Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {step === 3 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Step 3: Review and confirm</CardTitle>
-            <CardDescription>Check details before submitting.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-700">Source type: <Badge variant="secondary">{sourceType === "file" ? "File" : "Link"}</Badge></p>
-              <p className="mt-2 break-all text-sm text-slate-700">
-                Source: {sourceType === "file" ? selectedFile?.name ?? "No file selected" : url || "No URL entered"}
-              </p>
-              <p className="mt-2 text-sm text-slate-700">
-                Team: {departments.find((d) => d.id === departmentId)?.name ?? "Not selected"}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              After you submit, processing happens in the background. Use Review files to track status.
-            </div>
-
-            <div className="flex justify-between gap-2">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={handleSubmit} disabled={!canSubmit}>
-                {uploading ? "Submitting..." : "Submit source"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

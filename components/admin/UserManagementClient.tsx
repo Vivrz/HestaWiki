@@ -115,12 +115,45 @@ export default function UserManagementClient({
   return (
     <div className="space-y-6">
       <section className="admin-shell">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">People</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Users</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-950 sm:text-4xl">Understand who is using chat</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600 sm:text-base">
           Review user activity, inspect chat history, and find people who need onboarding support.
         </p>
       </section>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricTile
+          label="Users active this week"
+          value={usageStats.weeklyActiveUsers}
+          insight="Users who started at least one chat in the last 7 days."
+          icon={<HiOutlineUsers className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Users active this month"
+          value={usageStats.monthlyActiveUsers}
+          insight="Monthly active users across all teams."
+          icon={<HiOutlineUsers className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Average chat length"
+          value={`${usageStats.avgSessionMinutes}m`}
+          insight="Average minutes from first to last message."
+          icon={<HiOutlineClock className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Average chats per person"
+          value={usageStats.avgSessionsPerUser}
+          insight="How many sessions each user starts on average."
+          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
+        />
+        <MetricTile
+          label="Total chats this month"
+          value={usageStats.totalChatsThisMonth.toLocaleString()}
+          insight="Total sessions started in the current month."
+          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
@@ -167,44 +200,11 @@ export default function UserManagementClient({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricTile
-          label="People active this week"
-          value={usageStats.weeklyActiveUsers}
-          insight="Users who started at least one chat in the last 7 days."
-          icon={<HiOutlineUsers className="h-5 w-5" />}
-        />
-        <MetricTile
-          label="People active this month"
-          value={usageStats.monthlyActiveUsers}
-          insight="Monthly active users across all teams."
-          icon={<HiOutlineUsers className="h-5 w-5" />}
-        />
-        <MetricTile
-          label="Average chat length"
-          value={`${usageStats.avgSessionMinutes}m`}
-          insight="Average minutes from first to last message."
-          icon={<HiOutlineClock className="h-5 w-5" />}
-        />
-        <MetricTile
-          label="Average chats per person"
-          value={usageStats.avgSessionsPerUser}
-          insight="How many sessions each user starts on average."
-          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
-        />
-        <MetricTile
-          label="Total chats this month"
-          value={usageStats.totalChatsThisMonth.toLocaleString()}
-          insight="Total sessions started in the current month."
-          icon={<HiOutlineChatAlt2 className="h-5 w-5" />}
-        />
-      </div>
-
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle>People and chat history</CardTitle>
+              <CardTitle>Users and chat history</CardTitle>
               <CardDescription>Search people, then expand rows to inspect full conversations.</CardDescription>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">

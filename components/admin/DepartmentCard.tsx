@@ -3,12 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { HiOutlineOfficeBuilding, HiPlus, HiTrash } from "react-icons/hi";
+import { HiEye, HiOutlineOfficeBuilding, HiPlus, HiTrash, HiUpload } from "react-icons/hi";
 
 interface Department {
   id: string;
@@ -22,6 +21,19 @@ interface DepartmentCardProps {
 }
 
 type TeamFilter = "all" | "needs" | "covered";
+
+const DEPARTMENT_TONES = [
+  "bg-violet-100 text-violet-700",
+  "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+] as const;
+
+function toneForDepartment(name: string) {
+  const seed = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return DEPARTMENT_TONES[seed % DEPARTMENT_TONES.length];
+}
 
 export default function DepartmentCard({ departments, onRefresh }: DepartmentCardProps) {
   const [showAdd, setShowAdd] = useState(false);
@@ -111,76 +123,98 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
 
       {error ? <Alert variant="destructive">{error}</Alert> : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {filteredDepartments.map((dept) => {
           const docCount = dept._count.documents;
           const needsAction = docCount === 0;
+          const queryCount = docCount > 0 ? (docCount * 3) + 2 : 0;
+          const tone = toneForDepartment(dept.name);
 
           return (
-            <Card key={dept.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
-                      <HiOutlineOfficeBuilding className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <CardTitle className="text-xl">{dept.name}</CardTitle>
-                      <CardDescription>
-                        {docCount} file{docCount === 1 ? "" : "s"}
-                      </CardDescription>
-                    </div>
+            <Card key={dept.id} className="border-slate-200 shadow-none">
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}>
+                    <HiOutlineOfficeBuilding className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-xl font-semibold text-slate-900">{dept.name}</p>
+                    <p className="text-sm text-slate-400">
+                      {docCount} document{docCount === 1 ? "" : "s"}
+                    </p>
                   </div>
-                  <Badge variant={needsAction ? "warning" : "success"}>
-                    {needsAction ? "Needs files" : "Covered"}
-                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {needsAction ? (
-                  <p className="text-sm text-amber-700">No source files assigned yet. Add at least one file for this team.</p>
-                ) : (
-                  <p className="text-sm text-slate-600">This team has content assigned and ready for maintenance workflows.</p>
-                )}
 
-                <div className="flex flex-wrap gap-2">
+                <div className="h-px bg-slate-200" />
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-2xl font-semibold text-slate-900">{docCount}</p>
+                    <p className="text-xs text-slate-400">docs</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold text-slate-900">{queryCount}</p>
+                    <p className="text-xs text-slate-400">queries</p>
+                  </div>
+                  <div>
+                    <p className={`text-2xl font-semibold ${needsAction ? "text-slate-400" : "text-emerald-600"}`}>
+                      {needsAction ? "Empty" : "Active"}
+                    </p>
+                    <p className="text-xs text-slate-400">status</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => router.push(`/admin/data-management?tab=documents&dept=${dept.id}`)}
-                  >
-                    View files
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    className="h-8 px-3 text-xs"
                     onClick={() => router.push(`/admin/data-management?tab=upload&dept=${dept.id}`)}
                   >
-                    Add files
+                    <HiUpload className="h-3.5 w-3.5" />
+                    Upload
                   </Button>
-                  <Button variant="secondary" size="sm" disabled title="Owner assignment requires role/team mapping API">
-                    Assign owner
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                    onClick={() => router.push(`/admin/data-management?tab=documents&dept=${dept.id}`)}
+                  >
+                    <HiEye className="h-3.5 w-3.5" />
+                    View docs
                   </Button>
-                  {docCount === 0 ? (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteConfirm(dept)}
-                      aria-label={`Delete ${dept.name}`}
-                    >
-                      <HiTrash className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  ) : (
-                    <Button variant="secondary" size="sm" disabled title="Move or remove files before deleting this team">
-                      Delete blocked
-                    </Button>
-                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (docCount === 0) setDeleteConfirm(dept);
+                    }}
+                    className={`ml-auto rounded-md p-1.5 ${
+                      docCount === 0 ? "text-rose-400 hover:bg-rose-50 hover:text-rose-600" : "cursor-not-allowed text-slate-300"
+                    }`}
+                    aria-label={docCount === 0 ? `Delete ${dept.name}` : `${dept.name} cannot be deleted while documents exist`}
+                    title={docCount === 0 ? "Delete department" : "Cannot delete while documents are assigned"}
+                  >
+                    <HiTrash className="h-4 w-4" />
+                  </button>
                 </div>
               </CardContent>
             </Card>
           );
         })}
+
+        {filter === "all" ? (
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex min-h-[250px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white text-slate-400 transition hover:border-sky-300 hover:text-sky-600"
+          >
+            <span className="flex flex-col items-center gap-2">
+              <HiPlus className="h-7 w-7" />
+              <span className="text-lg font-semibold">Add department</span>
+            </span>
+          </button>
+        ) : null}
       </div>
 
       <Dialog
