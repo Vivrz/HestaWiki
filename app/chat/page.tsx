@@ -46,6 +46,26 @@ const PINNED_CHATS_STORAGE_KEY = "chat:pinned-session-ids";
 
 import { Suspense } from "react";
 
+function useTypewriterText(text: string, speedMs: number, resetKey: string | null) {
+  const [displayText, setDisplayText] = useState("");
+
+  useEffect(() => {
+    setDisplayText("");
+    if (!text) return;
+
+    let index = 0;
+    const interval = window.setInterval(() => {
+      index += 1;
+      setDisplayText(text.slice(0, index));
+      if (index >= text.length) window.clearInterval(interval);
+    }, speedMs);
+
+    return () => window.clearInterval(interval);
+  }, [resetKey, speedMs, text]);
+
+  return displayText;
+}
+
 function ChatContent() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "there";
@@ -59,7 +79,7 @@ function ChatContent() {
   const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState("");
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [pinnedSessionIds, setPinnedSessionIds] = useState<string[]>([]);
   const [isDark, setIsDark] = useState(false);
   const [greeting, setGreeting] = useState("Welcome back,");
@@ -75,6 +95,7 @@ function ChatContent() {
     sessionId: string | null;
     title: string;
   }>({ open: false, sessionId: null, title: "" });
+  const typedGreeting = useTypewriterText(`${greeting} ${firstName}`, 45, activeSessionId);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -520,25 +541,25 @@ function ChatContent() {
           </div>
         </div>
       ) : null}
-      <header className="border-b px-4 py-4 sm:px-6 transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
-        <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <header className="border-b px-3 py-4 transition-colors duration-200 sm:px-6" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => setShowSidebar((s) => !s)}
               className="rounded-xl p-2 text-[#6B6560] hover:bg-[#ECEAE4] md:hidden"
             >
               <HiMenuAlt2 className="h-5 w-5" />
             </button>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6B6560]">
                 Chat workspace
               </p>
-              <h1 className="text-lg font-semibold text-[#6B6560]">
+              <h1 className="truncate text-lg font-semibold text-[#6B6560]">
                 Enterprise Chatbot
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -577,7 +598,7 @@ function ChatContent() {
               >
                 <span className="inline-flex items-center gap-2">
                   <HiShieldCheck className="h-4 w-4" />
-                  <span>Admin</span>
+                  <span className="hidden sm:inline">Admin</span>
                 </span>
               </Button>
             )}
@@ -590,14 +611,14 @@ function ChatContent() {
             >
               <span className="inline-flex items-center gap-2">
                 <HiLogout className="h-4 w-4" />
-                <span>Sign Out</span>
+                <span className="hidden sm:inline">Sign Out</span>
               </span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1600px] flex-1 justify-center overflow-hidden px-4 py-4 sm:px-6 gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 justify-center gap-4 overflow-hidden px-4 py-4 sm:px-6">
         {/* Desktop sidebar / collapsed rail */}
         <div
           className="relative hidden shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] md:block"
@@ -634,7 +655,7 @@ function ChatContent() {
 
         {/* Mobile Sidebar overlay */}
         <div
-          className="absolute inset-y-[84px] left-4 z-20 flex h-full md:hidden sm:left-6 transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
+          className="fixed bottom-4 left-4 top-[84px] z-20 flex transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] sm:left-6 md:hidden"
           style={{
             transform: showSidebar ? "translateX(0)" : "translateX(-110%)",
             pointerEvents: showSidebar ? "auto" : "none",
@@ -654,11 +675,11 @@ function ChatContent() {
         </div>
 
         {/* Main content */}
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border transition-colors duration-200 relative" style={{ background: 'var(--chat-bg)', borderColor: 'var(--border-color)' }}>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border transition-colors duration-200" style={{ background: 'var(--chat-bg)', borderColor: 'var(--border-color)' }}>
           {messages.length === 0 ? (
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col justify-center">
               <div className="flex flex-col items-center w-full max-w-3xl mx-auto pb-12">
-                <div className="flex items-center justify-center gap-4 mb-8">
+                <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
                   <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path opacity="0.3" d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" fill="url(#ai_sparkle_glow)" />
                     <path d="M12 22C12 22 12 14.5 7 12C12 9.5 12 2 12 2C12 2 12 9.5 17 12C12 14.5 12 22 12 22Z" fill="var(--accent)"/>
@@ -671,8 +692,8 @@ function ChatContent() {
                       </radialGradient>
                     </defs>
                   </svg>
-                  <h1 style={{ fontFamily: "ui-serif, Georgia, serif", fontSize: "32px", fontWeight: "400", letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
-                    {greeting} {firstName}
+                  <h1 className="text-center font-serif text-2xl font-normal sm:text-[32px]" style={{ color: "var(--text-primary)" }}>
+                    {typedGreeting}
                   </h1>
                 </div>
                 <div className="w-full">
@@ -681,6 +702,7 @@ function ChatContent() {
                     onChange={setInput}
                     onSend={handleSend}
                     disabled={streaming}
+                    placeholderMode="crossfade"
                   />
                 </div>
               </div>

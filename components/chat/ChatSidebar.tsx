@@ -53,7 +53,7 @@ export default function ChatSidebar({
   }, []);
 
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col rounded-[24px] border transition-[background-color,border-color] duration-200" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
+    <div className="flex h-full w-[min(18rem,calc(100vw-2rem))] shrink-0 flex-col rounded-[24px] border transition-[background-color,border-color] duration-200" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
       <div className="border-b p-4 transition-colors duration-200" style={{ borderColor: 'var(--border-color)' }}>
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>
@@ -131,7 +131,7 @@ export default function ChatSidebar({
 
               <button
                 type="button"
-                className="absolute right-2 top-2 rounded-md p-1 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-2 top-2 rounded-md p-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                 style={{
                   color: "var(--text-secondary)",
                   background: isMenuOpen ? "var(--hover-bg)" : "transparent",

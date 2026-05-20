@@ -97,7 +97,7 @@ export default function MessageBubble({
     >
       {isUser ? (
         <>
-          <div className="flex max-w-[65%] flex-col items-end">
+          <div className="flex max-w-[85%] flex-col items-end sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[720px]">
             <div className="rounded-[18px_18px_4px_18px] px-4 py-[11px] text-[14px] leading-relaxed text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
               <p className="whitespace-pre-wrap break-words" style={{ overflowWrap: "anywhere" }}>{content}</p>
             </div>
@@ -112,12 +112,12 @@ export default function MessageBubble({
           <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
             H
           </div>
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <div className="mb-1.5 flex items-baseline gap-2">
               <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
               {timestamp && <p className="text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
             </div>
-            <div className="max-w-[95%] rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200 break-words" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', overflowWrap: "anywhere" }}>
+            <div className="max-w-full rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200 break-words sm:max-w-[95%] xl:max-w-[900px]" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', overflowWrap: "anywhere" }}>
               {renderAssistantContent()}
             </div>
 

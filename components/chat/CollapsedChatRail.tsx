@@ -211,7 +211,7 @@ export default function CollapsedChatRail({
         ? createPortal(
             <div
               ref={popoverRef}
-              className="fixed z-[1001] w-64 overflow-hidden rounded-2xl border shadow-2xl"
+              className="fixed z-[1001] w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-2xl"
               style={{
                 left: recentsPos.x,
                 top: recentsPos.y,
