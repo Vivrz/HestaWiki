@@ -33,7 +33,7 @@ const WEB_SPLITTER = new RecursiveCharacterTextSplitter({
 });
 
 const MIN_CHUNK_LENGTH = 80;
-const MIN_PAGE_LENGTH  = 200;
+const MIN_PAGE_LENGTH  = 100;
 const BATCH_SIZE       = 5;
 const BATCH_DELAY_MS   = 300;
 const RETRY_DELAY_MS   = 2000;
@@ -74,6 +74,35 @@ const NOISE_PATTERNS: RegExp[] = [
   /share this (page|post|article)[\s\S]{0,200}?/gi,
   /\[\s*\]\([^)]*\)/g,
   /\n{3,}/g,
+];
+
+// ─── ADD YOUR PRIORITY PAGES HERE ─────────────────────────────────
+const PRIORITY_PAGES: string[] = [
+  "https://www.hestabit.com/digital-transformation/predictive-analytics",
+  "https://www.hestabit.com/digital-transformation/air-gap-data-security",
+  "https://www.hestabit.com/web-app-development-company",
+  "https://www.hestabit.com/digital-transformation/ai-virtual-assistant",
+  "https://www.hestabit.com/digital-transformation/computer-vision",
+  "https://www.hestabit.com/mobile-app-development-company",
+  "https://www.hestabit.com/services/management-consultancy",
+  "https://www.hestabit.com/digital-transformation/computer-vision",
+  "https://www.hestabit.com/staff-augmentation",
+  "https://www.hestabit.com/services/ai-security",
+  "https://www.hestabit.com/services/sap",
+  "https://www.hestabit.com/enterprises/vr-training",
+  "https://www.hestabit.com/product/convocraft",
+  "https://www.hestabit.com/enterprise/legal",
+  "https://www.hestabit.com/products/illumate",
+  "https://www.hestabit.com/products/ai-hr-assistant",
+  "https://www.hestabit.com/products/ai-powered-smart-dms",
+  "https://www.hestabit.com/products/datapulse-ai",
+  "https://www.hestabit.com/products/geo-vista",
+  "https://www.hestabit.com/products/igaming",
+  "https://www.hestabit.com/bfsi",
+  "https://www.hestabit.com/edtech",
+  "https://www.hestabit.com/defence-tech",
+  "https://www.hestabit.com/industries/manufacturing",
+  "https://www.hestabit.com/awards"
 ];
 
 function cleanMarkdown(raw: string): string {
@@ -126,6 +155,113 @@ export function getSectionFromUrl(url: string): string {
   }
 }
 
+// ─── REUSABLE: process a single page's markdown into vector DB ─────
+async function processPage({
+  url,
+  markdown,
+  title,
+  today,
+  document,
+  vectorStore,
+  seenHashes,
+}: {
+  url: string;
+  markdown: string;
+  title: string;
+  today: string;
+  document: any;
+  vectorStore: any;
+  seenHashes: Set<string>;
+}): Promise<{ chunks: number; skipped: boolean }> {
+
+  if (isInternalUrl(url) || isExcludedUrl(url)) {
+    return { chunks: 0, skipped: true };
+  }
+
+  const cleanedMarkdown = cleanMarkdown(markdown);
+
+  if (cleanedMarkdown.length < MIN_PAGE_LENGTH) {
+    console.warn(`  Skipping thin page (${cleanedMarkdown.length} chars): ${url}`);
+    return { chunks: 0, skipped: true };
+  }
+
+  const contentHash = cleanedMarkdown.slice(0, 500);
+  if (seenHashes.has(contentHash)) {
+    console.warn(`   Skipping duplicate content: ${url}`);
+    return { chunks: 0, skipped: true };
+  }
+  seenHashes.add(contentHash);
+
+  const rawDoc = new Document({
+    pageContent: cleanedMarkdown,
+    metadata: { sourceURL: url },
+  });
+
+  const chunks = await WEB_SPLITTER.splitDocuments([rawDoc]);
+
+  const qualityChunks = chunks.filter(chunk => {
+    const text = chunk.pageContent.trim();
+    if (text.length < MIN_CHUNK_LENGTH)           return false;
+    if (/^(\[.*?\]\(.*?\)\s*){1,5}$/.test(text)) return false;
+    if (/^#{1,4}\s+.{1,80}$/.test(text))         return false;
+    return true;
+  });
+
+  if (qualityChunks.length === 0) {
+    console.warn(`   No quality chunks after filtering: ${url}`);
+    return { chunks: 0, skipped: true };
+  }
+
+  const chunksWithMetadata = qualityChunks.map((chunk, idx) => ({
+    ...chunk,
+    metadata: {
+      source:       "website",
+      source_url:   url,
+      page_title:   title,
+      section:      getSectionFromUrl(url),
+      chunk_index:  idx,
+      total_chunks: qualityChunks.length,
+      last_scraped: today,
+      docId:        document.id,
+      departmentId: document.departmentId,
+      isLatest:     true,
+    },
+  }));
+
+  let attempt = 0;
+  let success = false;
+
+  while (attempt <= MAX_RETRIES && !success) {
+    try {
+      for (let i = 0; i < chunksWithMetadata.length; i += BATCH_SIZE) {
+        const batch = chunksWithMetadata.slice(i, i + BATCH_SIZE);
+        await vectorStore.addDocuments(batch);
+        await sleep(BATCH_DELAY_MS);
+      }
+      success = true;
+    } catch {
+      attempt++;
+      if (attempt <= MAX_RETRIES) {
+        console.warn(`  Embed attempt ${attempt} failed for ${url}, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+        await sleep(RETRY_DELAY_MS);
+      } else {
+        console.error(`  Skipping after ${MAX_RETRIES} retries: ${url}`);
+        return { chunks: 0, skipped: true };
+      }
+    }
+  }
+
+  console.log(
+    `  ✓  [${getSectionFromUrl(url).padEnd(18)}] ${url}\n` +
+    `       → ${qualityChunks.length} chunks kept` +
+    (chunks.length !== qualityChunks.length
+      ? ` (${chunks.length - qualityChunks.length} dropped)`
+      : "")
+  );
+
+  return { chunks: qualityChunks.length, skipped: false };
+}
+
 export async function ingestDocument(documentId: string): Promise<void> {
   try {
     const document = await prisma.document.findUnique({
@@ -143,11 +279,19 @@ export async function ingestDocument(documentId: string): Promise<void> {
         throw new Error(`Refusing to crawl internal URL: ${document.sourceUrl}`);
       }
 
-      console.log(`🔥 Starting crawl: ${document.sourceUrl}`);
+      const today          = new Date().toISOString().slice(0, 10);
+      let totalChunks      = 0;
+      let skippedPages     = 0;
+      let skippedChunks    = 0;
+      const seenHashes     = new Set<string>();
+
+      // ─── PHASE 1: crawl ───────────────────────────────────────────
+      console.log(` Phase 1 — Starting crawl: ${document.sourceUrl}`);
 
       const firecrawl = getFirecrawlClient();
       const crawlResult = await firecrawl.crawl(document.sourceUrl, {
         limit: 50,
+        excludePaths: ["/blog/*", "/blog/page/*", "/blog/category/*", "/blog/tag/*"],
         scrapeOptions: {
           formats: ["markdown"],
           waitFor: 2000,
@@ -168,125 +312,95 @@ export async function ingestDocument(documentId: string): Promise<void> {
         throw new Error(`Firecrawl returned 0 pages for ${document.sourceUrl}`);
       }
 
-      console.log(`✅ Crawled ${pages.length} pages. Processing...\n`);
-
-      const today          = new Date().toISOString().slice(0, 10);
-      let totalChunks      = 0;
-      let skippedPages     = 0;
-      let skippedChunks    = 0;
-      const seenHashes     = new Set<string>();
+      console.log(` Crawled ${pages.length} pages. Processing...\n`);
 
       for (const page of pages) {
         const url      = page.metadata?.sourceURL;
         const markdown = page.markdown;
 
         if (!url || !markdown) {
-          console.warn(`  ⚠️  Skipping — missing URL or markdown`);
+          console.warn(` Skipping — missing URL or markdown`);
           skippedPages++;
           continue;
         }
 
-        if (isInternalUrl(url)) {
-          console.warn(`  ⚠️  Skipping internal URL: ${url}`);
-          skippedPages++;
-          continue;
-        }
-
-        if (isExcludedUrl(url)) {
-          console.warn(`  ⚠️  Skipping excluded URL: ${url}`);
-          skippedPages++;
-          continue;
-        }
-
-        const cleanedMarkdown = cleanMarkdown(markdown);
-
-        if (cleanedMarkdown.length < MIN_PAGE_LENGTH) {
-          console.warn(`  ⚠️  Skipping thin page (${cleanedMarkdown.length} chars): ${url}`);
-          skippedPages++;
-          continue;
-        }
-
-        const contentHash = cleanedMarkdown.slice(0, 500);
-        if (seenHashes.has(contentHash)) {
-          console.warn(`  ⚠️  Skipping duplicate content: ${url}`);
-          skippedPages++;
-          continue;
-        }
-        seenHashes.add(contentHash);
-
-        const rawDoc = new Document({
-          pageContent: cleanedMarkdown,
-          metadata: { sourceURL: url },
+        const { chunks, skipped } = await processPage({
+          url,
+          markdown,
+          title: page.metadata?.title ?? url,
+          today,
+          document,
+          vectorStore,
+          seenHashes,
         });
 
-        const chunks = await WEB_SPLITTER.splitDocuments([rawDoc]);
-
-        const qualityChunks = chunks.filter(chunk => {
-          const text = chunk.pageContent.trim();
-          if (text.length < MIN_CHUNK_LENGTH)                  { skippedChunks++; return false; }
-          if (/^(\[.*?\]\(.*?\)\s*){1,5}$/.test(text))        { skippedChunks++; return false; }
-          if (/^#{1,4}\s+.{1,80}$/.test(text))                { skippedChunks++; return false; }
-          return true;
-        });
-
-        if (qualityChunks.length === 0) {
-          console.warn(`  ⚠️  No quality chunks after filtering: ${url}`);
-          skippedPages++;
-          continue;
-        }
-
-        const chunksWithMetadata = qualityChunks.map((chunk, idx) => ({
-          ...chunk,
-          metadata: {
-            source:       "website",
-            source_url:   url,
-            page_title:   page.metadata?.title ?? url,
-            section:      getSectionFromUrl(url),
-            chunk_index:  idx,
-            total_chunks: qualityChunks.length,
-            last_scraped: today,
-            docId:        document.id,
-            departmentId: document.departmentId,
-            isLatest:     true,
-          },
-        }));
-
-        let attempt = 0;
-        let success = false;
-
-        while (attempt <= MAX_RETRIES && !success) {
-          try {
-            for (let i = 0; i < chunksWithMetadata.length; i += BATCH_SIZE) {
-              const batch = chunksWithMetadata.slice(i, i + BATCH_SIZE);
-              await vectorStore.addDocuments(batch);
-              await sleep(BATCH_DELAY_MS);
-            }
-            success = true;
-          } catch {
-            attempt++;
-            if (attempt <= MAX_RETRIES) {
-              console.warn(`  ⚠️  Embed attempt ${attempt} failed for ${url}, retrying in ${RETRY_DELAY_MS / 1000}s...`);
-              await sleep(RETRY_DELAY_MS);
-            } else {
-              console.error(`  ❌  Skipping after ${MAX_RETRIES} retries: ${url}`);
-              skippedPages++;
-            }
-          }
-        }
-
-        if (success) {
-          totalChunks += qualityChunks.length;
-          console.log(
-            `  ✓  [${getSectionFromUrl(url).padEnd(18)}] ${url}\n` +
-            `       → ${qualityChunks.length} chunks kept` +
-            (chunks.length !== qualityChunks.length
-              ? ` (${chunks.length - qualityChunks.length} dropped)`
-              : "")
-          );
-        }
+        if (skipped) skippedPages++;
+        else totalChunks += chunks;
       }
 
-      console.log(`🎉 Ingestion complete | Pages: ${pages.length}, Skipped: ${skippedPages}, Chunks: ${totalChunks}, Dropped: ${skippedChunks}`);
+      console.log(`\n Phase 1 complete | Pages: ${pages.length}, Skipped: ${skippedPages}, Chunks: ${totalChunks}, Dropped: ${skippedChunks}`);
+
+      // ─── PHASE 2: priority pages ──────────────────────────────────
+      if (PRIORITY_PAGES.length > 0) {
+        console.log(`\n Phase 2 — Scraping ${PRIORITY_PAGES.length} priority pages...`);
+
+        const crawledUrls = new Set(
+          pages.map(p => p.metadata?.sourceURL).filter(Boolean)
+        );
+
+        let priorityScraped  = 0;
+        let prioritySkipped  = 0;
+
+        for (const url of PRIORITY_PAGES) {
+
+          if (crawledUrls.has(url)) {
+            console.log(`  Already crawled in Phase 1, skipping: ${url}`);
+            prioritySkipped++;
+            continue;
+          }
+
+          try {
+            const result = await firecrawl.scrape(url, {
+              formats: ["markdown"],
+              waitFor: 2000,
+              onlyMainContent: true,
+            });
+
+            if (!result.markdown) {
+              console.warn(`  No markdown returned for: ${url}`);
+              prioritySkipped++;
+              continue;
+            }
+
+            const { chunks, skipped } = await processPage({
+              url,
+              markdown: result.markdown,
+              title: result.metadata?.title ?? url,
+              today,
+              document,
+              vectorStore,
+              seenHashes,
+            });
+
+            if (skipped) {
+              prioritySkipped++;
+            } else {
+              totalChunks   += chunks;
+              priorityScraped++;
+            }
+
+          } catch (err) {
+            console.error(`  Failed to scrape priority page: ${url}`, err);
+            prioritySkipped++;
+          }
+
+          await sleep(500);
+        }
+
+        console.log(`\n Phase 2 complete | Scraped: ${priorityScraped}, Skipped: ${prioritySkipped}`);
+      }
+
+      console.log(`\n Full ingestion done | Total chunks in DB: ${totalChunks}`);
 
     } else if (
       (document.type === "pdf"  ||
@@ -322,7 +436,7 @@ export async function ingestDocument(documentId: string): Promise<void> {
         await sleep(BATCH_DELAY_MS);
       }
 
-      console.log(`✅ Ingested ${chunks.length} chunks from: ${document.name}`);
+      console.log(` Ingested ${chunks.length} chunks from: ${document.name}`);
 
     } else {
       throw new Error(
@@ -339,7 +453,7 @@ export async function ingestDocument(documentId: string): Promise<void> {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown ingestion error";
 
-    console.error(`❌ Ingestion failed:`, errorMessage);
+    console.error(` Ingestion failed:`, errorMessage);
 
     await prisma.document.update({
       where: { id: documentId },

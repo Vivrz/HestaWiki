@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client"; // UPDATED: needed for Prisma.sql and P
 import { embeddings } from "./embeddings";
 import { prisma } from "../prisma";
 
+
+let vectorStore: PGVectorStore | null = null;
 export interface RetrievalFilter {
   docId?: string;
   departmentId?: string;
@@ -14,6 +16,9 @@ export interface RetrievalFilter {
 const VECTOR_DISTANCE_THRESHOLD = 0.50;
 const VECTOR_K = 12;
 const RESULT_LIMIT = 8;
+const BM25_K1 = 1.2;
+const BM25_B = 0.75;
+const MIN_BM25_TERM_LENGTH = 3;
 
 // Boost chunks from these pages for broad overview queries.
 const FLAGSHIP_URL_PATTERNS = [
@@ -130,15 +135,20 @@ function extractKeyTerms(query: string): string[] {
     .filter(word => word.length > 2 && !stopWords.has(word));
 }
 
-function buildKeywordQuery(query: string): string {
-  const terms = extractKeyTerms(query);
-  if (terms.length === 0) return query;
-  // Escape single quotes and join with " or " (websearch_to_tsquery supports OR syntax).
-  return terms.map(t => t.replace(/'/g, "")).join(" or ");
+function buildBm25Terms(query: string): string[] {
+  return Array.from(
+    new Set(
+      extractKeyTerms(query)
+        .map(term => term.replace(/[^\p{L}\p{N}]/gu, "").toLowerCase())
+        .filter(term => term.length >= MIN_BM25_TERM_LENGTH)
+    )
+  );
 }
 
 export async function getVectorStore(): Promise<PGVectorStore> {
-  return await PGVectorStore.initialize(embeddings, {
+  if(vectorStore){return vectorStore;}
+
+  vectorStore = await PGVectorStore.initialize(embeddings, {
     postgresConnectionOptions: {
       connectionString: process.env.DATABASE_URL,
     },
@@ -150,6 +160,7 @@ export async function getVectorStore(): Promise<PGVectorStore> {
       metadataColumnName: "metadata",
     },
   });
+  return vectorStore;
 }
 
 export async function performKeywordSearch(
@@ -158,32 +169,99 @@ export async function performKeywordSearch(
   filter?: RetrievalFilter
 ): Promise<Document[]> {
   try {
-    const searchQuery = buildKeywordQuery(query);
+    const searchTerms = buildBm25Terms(query);
+    if (searchTerms.length === 0) return [];
 
-    // Use websearch_to_tsquery for better multi-word query handling
-    const results = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: Record<string, unknown>; rank: number }>>`
+    const queryTermValues = Prisma.join(
+      searchTerms.map(term => Prisma.sql`(${term})`)
+    );
+
+    const results = await prisma.$queryRaw<Array<{ id: string; content: string; metadata: Record<string, unknown>; bm25_score: number }>>`
+      WITH query_terms(term) AS (
+        VALUES ${queryTermValues}
+      ),
+      filtered AS (
+        SELECT id, content, metadata
+        FROM langchain_pg_embedding
+        WHERE content IS NOT NULL
+          AND length(trim(content)) > 0
+          ${filter?.sourceType ? Prisma.sql`AND metadata->>'source' = ${filter.sourceType}` : Prisma.empty}
+          AND (
+            (
+              metadata->>'source' = 'website'
+              AND (metadata->>'isLatest' IS NULL OR (metadata->>'isLatest')::boolean = true)
+            )
+            OR (
+              metadata->>'source' = 'document'
+              AND (metadata->>'isLatest')::boolean = ${filter?.isLatest ?? true}
+              ${filter?.docId ? Prisma.sql`AND metadata->>'docId' = ${filter.docId}` : Prisma.empty}
+              ${filter?.departmentId ? Prisma.sql`AND metadata->>'departmentId' = ${filter.departmentId}` : Prisma.empty}
+            )
+          )
+      ),
+      doc_lengths AS (
+        SELECT
+          f.id,
+          count(token.token)::double precision AS doc_len
+        FROM filtered f
+        CROSS JOIN LATERAL regexp_split_to_table(
+          lower(coalesce(f.content, '')),
+          '[^[:alnum:]]+'
+        ) AS token(token)
+        WHERE token.token <> ''
+        GROUP BY f.id
+      ),
+      token_counts AS (
+        SELECT
+          f.id,
+          f.content,
+          f.metadata,
+          token.token AS term,
+          count(*)::double precision AS term_freq
+        FROM filtered f
+        CROSS JOIN LATERAL regexp_split_to_table(
+          lower(coalesce(f.content, '')),
+          '[^[:alnum:]]+'
+        ) AS token(token)
+        JOIN query_terms qt ON qt.term = token.token
+        GROUP BY f.id, f.content, f.metadata, token.token
+      ),
+      corpus AS (
+        SELECT
+          count(*)::double precision AS total_docs,
+          avg(doc_len)::double precision AS avg_doc_len
+        FROM doc_lengths
+      ),
+      term_stats AS (
+        SELECT
+          term,
+          count(*)::double precision AS doc_freq
+        FROM token_counts
+        GROUP BY term
+      )
       SELECT
-        id,
-        content,
-        metadata,
-        ts_rank(to_tsvector('english', content), websearch_to_tsquery('english', ${searchQuery})) as rank
-      FROM langchain_pg_embedding
-      WHERE
-        websearch_to_tsquery('english', ${searchQuery}) @@ to_tsvector('english', content)
-        ${filter?.sourceType ? Prisma.sql`AND metadata->>'source' = ${filter.sourceType}` : Prisma.empty}
-        AND (
-          (
-            metadata->>'source' = 'website'
-            AND (metadata->>'isLatest' IS NULL OR (metadata->>'isLatest')::boolean = true)
+        tc.id,
+        tc.content,
+        tc.metadata,
+        sum(
+          ln(1 + ((corpus.total_docs - ts.doc_freq + 0.5) / (ts.doc_freq + 0.5)))
+          * (
+            (tc.term_freq * (${BM25_K1} + 1))
+            / (
+              tc.term_freq
+              + ${BM25_K1} * (
+                1 - ${BM25_B}
+                + ${BM25_B} * (dl.doc_len / nullif(corpus.avg_doc_len, 0))
+              )
+            )
           )
-          OR (
-            metadata->>'source' = 'document'
-            AND (metadata->>'isLatest')::boolean = ${filter?.isLatest ?? true}
-            ${filter?.docId ? Prisma.sql`AND metadata->>'docId' = ${filter.docId}` : Prisma.empty}
-            ${filter?.departmentId ? Prisma.sql`AND metadata->>'departmentId' = ${filter.departmentId}` : Prisma.empty}
-          )
-        )
-      ORDER BY rank DESC
+        ) AS bm25_score
+      FROM token_counts tc
+      JOIN doc_lengths dl ON dl.id = tc.id
+      JOIN term_stats ts ON ts.term = tc.term
+      CROSS JOIN corpus
+      GROUP BY tc.id, tc.content, tc.metadata
+      ORDER BY bm25_score DESC
       LIMIT ${k}
     `;
 
@@ -195,7 +273,7 @@ export async function performKeywordSearch(
         })
     );
   } catch (error) {
-    console.error("Keyword search error:", error);
+    console.error("BM25 keyword search error:", error);
     return [];
   }
 }
@@ -213,13 +291,13 @@ export async function getHybridRetriever(
     ...(opts.departmentId ? { departmentId: opts.departmentId } : {}),
   };
 
-  const webFilter = { source: "website" };
+  const webFilter = { source: "website", isLatest: true };
 
   const searchDocument = !opts.sourceType || opts.sourceType === "document";
   const searchWebsite = !opts.sourceType || opts.sourceType === "website";
 
   const overviewQuery = isOverviewQuery(query) && searchWebsite;
-  const [hrResults, webResults, keywordResults, flagshipDocs] = await Promise.all([
+  const [hrResults, webResults, bm25Results, flagshipDocs] = await Promise.all([
     searchDocument
       ? vectorStore.similaritySearchWithScore(query, VECTOR_K, hrFilter)
       : Promise.resolve([]),
@@ -240,13 +318,27 @@ export async function getHybridRetriever(
     scored.set(key, { doc, score: (1 - dist) * 0.4 });
   }
 
-  for (const doc of keywordResults) {
+  for (const doc of bm25Results) {
     const key = generateDocKey(doc);
     const existing = scored.get(key);
     if (existing) {
       existing.score += 0.6;
     } else {
       scored.set(key, { doc, score: 0.6 });
+    }
+  }
+
+  // Boost website chunks whose page context matches query terms
+  if (searchWebsite) {
+    const queryTerms = extractKeyTerms(query);
+    for (const entry of scored.values()) {
+      const meta = entry.doc.metadata as Record<string, unknown>;
+      if (meta.source !== "website") continue;
+      const title = String(meta.page_title ?? "").toLowerCase();
+      const section = String(meta.section ?? "").toLowerCase();
+      if (queryTerms.some(t => title.includes(t) || section.includes(t))) {
+        entry.score += 0.15;
+      }
     }
   }
 
@@ -290,6 +382,18 @@ export async function getHybridRetriever(
     }
   }
 
+  // Fetch adjacent chunks for context continuity
+  const topCandidates = Array.from(scored.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  const adjacentDocs = await fetchAdjacentChunks(topCandidates, scored);
+  for (const doc of adjacentDocs) {
+    const key = generateDocKey(doc);
+    if (!scored.has(key)) {
+      scored.set(key, { doc, score: 0.5 });
+    }
+  }
+
   const resultLimit = deepQuery ? RESULT_LIMIT + 6 : RESULT_LIMIT;
 
   return Array.from(scored.values())
@@ -309,3 +413,56 @@ function generateDocKey(doc: Document): string {
   return `content:${String(doc.pageContent).slice(0, 120)}`;
 }
 
+async function fetchAdjacentChunks(
+  candidates: { doc: Document; score: number }[],
+  existing: Map<string, { doc: Document; score: number }>
+): Promise<Document[]> {
+  const adjacentDocs: Document[] = [];
+
+  for (const { doc } of candidates) {
+    const meta = doc.metadata as Record<string, unknown>;
+    const idx = (meta.chunkIndex ?? meta.chunk_index) as number | undefined;
+    if (typeof idx !== "number") continue;
+
+    const adjacentIndices = [idx - 1, idx + 1].filter(i => i >= 0);
+    if (adjacentIndices.length === 0) continue;
+
+    try {
+      let rows: Array<{ content: string; metadata: Record<string, unknown> }> = [];
+
+      if (meta.source === "website" && meta.source_url) {
+        rows = await prisma.$queryRaw`
+          SELECT content, metadata
+          FROM langchain_pg_embedding
+          WHERE metadata->>'source_url' = ${meta.source_url as string}
+            AND (
+              (metadata->>'chunk_index')::int = ${idx - 1}
+              OR (metadata->>'chunk_index')::int = ${idx + 1}
+            )
+        `;
+      } else if (meta.docId) {
+        rows = await prisma.$queryRaw`
+          SELECT content, metadata
+          FROM langchain_pg_embedding
+          WHERE metadata->>'docId' = ${meta.docId as string}
+            AND (
+              (metadata->>'chunkIndex')::int = ${idx - 1}
+              OR (metadata->>'chunkIndex')::int = ${idx + 1}
+            )
+        `;
+      }
+
+      for (const row of rows) {
+        const adjDoc = new Document({ pageContent: row.content, metadata: row.metadata });
+        const key = generateDocKey(adjDoc);
+        if (!existing.has(key) && !adjacentDocs.some(d => generateDocKey(d) === key)) {
+          adjacentDocs.push(adjDoc);
+        }
+      }
+    } catch (err) {
+      console.error("Adjacency fetch error:", err);
+    }
+  }
+
+  return adjacentDocs;
+}
