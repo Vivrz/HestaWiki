@@ -16,12 +16,14 @@ export default function CollapsedChatRail({
   activeSessionId,
   onOpenSidebar,
   onNewChat,
+  newChatDisabled = false,
   onSelectSession,
 }: {
   sessions: ChatSession[];
   activeSessionId: string | null;
   onOpenSidebar: () => void;
   onNewChat: () => void;
+  newChatDisabled?: boolean;
   onSelectSession: (id: string) => void;
 }) {
   const [recentsOpen, setRecentsOpen] = useState(false);
@@ -132,14 +134,21 @@ export default function CollapsedChatRail({
       <button
         type="button"
         onClick={() => {
+          if (newChatDisabled) return;
           setRecentsOpen(false);
           hideTooltip();
           onNewChat();
         }}
         className={cn(iconButtonClass)}
-        style={{ color: "var(--text-secondary)" }}
+        style={{
+          color: "var(--text-secondary)",
+          cursor: newChatDisabled ? "not-allowed" : "pointer",
+          opacity: newChatDisabled ? 0.6 : 1,
+        }}
         aria-label="New chat"
+        disabled={newChatDisabled}
         onMouseEnter={(e) => {
+          if (newChatDisabled) return;
           e.currentTarget.style.background = "var(--hover-bg)";
           showTooltip(e, "New chat");
         }}

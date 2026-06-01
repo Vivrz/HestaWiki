@@ -187,10 +187,16 @@ function ChatContent() {
 
   const handleSelectSession = (id: string) => {
     setActiveSessionId(id);
+    setMessages([]);
     fetchMessages(id);
   };
 
+  const canCreateNewChat =
+    !activeSessionId || messages.some((message) => message.role === "user");
+
   const handleNewChat = useCallback(async () => {
+    if (!canCreateNewChat || streaming) return;
+
     const res = await fetch("/api/chat/sessions", { method: "POST" });
     if (res.status === 401 || res.status === 403) {
       handleAuthExpired();
@@ -202,7 +208,7 @@ function ChatContent() {
       setActiveSessionId(session.id);
       setMessages([]);
     }
-  }, [handleAuthExpired]);
+  }, [canCreateNewChat, handleAuthExpired, streaming]);
 
   const handleRenameSession = useCallback(async (id: string, currentTitle: string) => {
     setRenameModal({
@@ -633,6 +639,7 @@ function ChatContent() {
               activeSessionId={activeSessionId}
               onSelectSession={handleSelectSession}
               onNewChat={handleNewChat}
+              newChatDisabled={!canCreateNewChat || streaming}
               onToggle={() => setShowSidebar(false)}
               pinnedSessionIds={pinnedSessionIds}
               onRenameSession={handleRenameSession}
@@ -648,6 +655,7 @@ function ChatContent() {
               activeSessionId={activeSessionId}
               onOpenSidebar={() => setShowSidebar(true)}
               onNewChat={handleNewChat}
+              newChatDisabled={!canCreateNewChat || streaming}
               onSelectSession={handleSelectSession}
             />
           </div>
@@ -666,6 +674,7 @@ function ChatContent() {
             activeSessionId={activeSessionId}
             onSelectSession={handleSelectSession}
             onNewChat={handleNewChat}
+            newChatDisabled={!canCreateNewChat || streaming}
             onToggle={() => setShowSidebar(false)}
             pinnedSessionIds={pinnedSessionIds}
             onRenameSession={handleRenameSession}

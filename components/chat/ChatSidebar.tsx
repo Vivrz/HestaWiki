@@ -22,6 +22,7 @@ interface ChatSidebarProps {
   activeSessionId: string | null;
   onSelectSession: (id: string) => void;
   onNewChat: () => void;
+  newChatDisabled?: boolean;
   onToggle: () => void;
   pinnedSessionIds: string[];
   onRenameSession: (id: string, currentTitle: string) => void;
@@ -34,6 +35,7 @@ export default function ChatSidebar({
   activeSessionId,
   onSelectSession,
   onNewChat,
+  newChatDisabled = false,
   onToggle,
   pinnedSessionIds,
   onRenameSession,
@@ -85,8 +87,9 @@ export default function ChatSidebar({
           </button>
         </div>
         <Button
-          className="w-full rounded-[12px] border-none bg-[#4A4580] text-white hover:bg-[#3A3570]"
+          className="w-full rounded-[12px] border-none bg-[#4A4580] text-white hover:bg-[#3A3570] disabled:cursor-not-allowed disabled:opacity-60"
           onClick={onNewChat}
+          disabled={newChatDisabled}
         >
           <span className="flex items-center justify-center gap-2">
             <HiPlus className="h-4 w-4" />
