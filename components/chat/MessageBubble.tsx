@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { HiLightningBolt } from "react-icons/hi";
 
 interface Source {
   docId: string;
@@ -97,8 +98,8 @@ export default function MessageBubble({
     >
       {isUser ? (
         <>
-          <div className="flex max-w-[85%] flex-col items-end sm:max-w-[75%] lg:max-w-[65%] xl:max-w-[720px]">
-            <div className="rounded-[18px_18px_4px_18px] px-4 py-[11px] text-[14px] leading-relaxed text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
+          <div className="flex max-w-[85%] flex-col items-end sm:max-w-[75%] lg:max-w-[58%] xl:max-w-[640px]">
+            <div className="rounded-[22px_4px_22px_22px] px-5 py-4 text-[14px] leading-relaxed text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
               <p className="whitespace-pre-wrap break-words" style={{ overflowWrap: "anywhere" }}>{content}</p>
             </div>
             {timestamp && <p className="mr-9 mt-1 text-right text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
@@ -109,18 +110,17 @@ export default function MessageBubble({
         </>
       ) : (
         <>
-          <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
-            H
+          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
+            <HiLightningBolt className="h-4 w-4" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="mb-1.5 flex items-baseline gap-2">
-              <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
+            <div className="mb-3 flex items-center gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200" style={{ color: 'var(--accent)' }}>Hestawiki AI</p>
               {timestamp && <p className="text-[11px] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>{timestamp}</p>}
             </div>
-            <div className="max-w-full rounded-[4px_18px_18px_18px] border px-[18px] py-[14px] text-[14px] leading-[1.75] transition-colors duration-200 break-words sm:max-w-[95%] xl:max-w-[900px]" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)', overflowWrap: "anywhere" }}>
+            <div className="max-w-full text-[16px] leading-[1.65] transition-colors duration-200 break-words sm:max-w-[92%] xl:max-w-[900px]" style={{ color: 'var(--text-primary)', overflowWrap: "anywhere" }}>
               {renderAssistantContent()}
             </div>
-
           </div>
         </>
       )}

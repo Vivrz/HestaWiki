@@ -1,14 +1,14 @@
 export default function TypingIndicator() {
   return (
-    <div className="mb-5 flex items-start gap-3" style={{ animation: "msgIn 150ms ease-out both" }}>
-      <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
+    <div className="mb-10 flex items-start gap-3" style={{ animation: "msgIn 150ms ease-out both" }}>
+      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-white transition-colors duration-200" style={{ background: 'var(--accent)' }}>
         H
       </div>
       <div className="flex flex-col">
-        <div className="mb-1.5 flex items-baseline gap-2">
-          <p className="text-[13px] font-medium transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>Hestabit Assistant</p>
+        <div className="mb-3 flex items-baseline gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200" style={{ color: 'var(--accent)' }}>Hestawiki AI</p>
         </div>
-        <div className="flex gap-1.5 rounded-[4px_18px_18px_18px] border px-[18px] py-[16px] transition-colors duration-200" style={{ background: 'var(--header-bg)', borderColor: 'var(--border-color)' }}>
+        <div className="flex gap-1.5 px-0 py-1 transition-colors duration-200">
           {[0, 1, 2].map((i) => (
             <span
               key={i}

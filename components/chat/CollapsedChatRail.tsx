@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HiMenuAlt2, HiOutlineChatAlt2, HiOutlinePencil, HiOutlineViewBoards } from "react-icons/hi";
+import { HiOutlineChatAlt2, HiOutlinePencil, HiOutlineViewBoards } from "react-icons/hi";
 import { cn } from "@/lib/utils";
 
 interface ChatSession {
@@ -63,7 +63,7 @@ export default function CollapsedChatRail({
   const recentSessions = useMemo(() => sessions.slice(0, 12), [sessions]);
 
   const iconButtonClass =
-    "group relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors";
+    "group relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors";
 
   const showTooltip = (event: React.MouseEvent, label: string) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -109,10 +109,21 @@ export default function CollapsedChatRail({
   return (
     <div
       ref={scopeRef}
-      className="relative flex h-full w-16 shrink-0 flex-col items-center gap-2 rounded-[24px] border px-2 py-3 transition-colors duration-200"
-      style={{ background: "var(--sidebar-bg)", borderColor: "var(--border-color)" }}
+      className="relative flex h-full w-14 shrink-0 flex-col items-center gap-3 border-r px-2 py-5 transition-colors duration-200"
+      style={{ background: "var(--header-bg)", borderColor: "var(--border-color)" }}
       aria-label="Collapsed chat sidebar"
     >
+      <div className="mb-7 flex h-9 w-9 items-center justify-center rounded-lg" style={{ color: "var(--accent)" }} aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <circle cx="6" cy="6" r="2" fill="currentColor" />
+          <circle cx="18" cy="6" r="2" fill="currentColor" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+          <circle cx="6" cy="18" r="2" fill="currentColor" />
+          <circle cx="18" cy="18" r="2" fill="currentColor" />
+          <path d="M7.7 7.1 10.3 10M16.3 7.1 13.7 10M7.7 16.9 10.3 14M16.3 16.9 13.7 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </div>
+
       <button
         type="button"
         onClick={() => {
@@ -127,7 +138,6 @@ export default function CollapsedChatRail({
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
       >
-        {/* <HiMenuAlt2 className="h-5 w-5" /> */}
         <HiOutlineViewBoards className="w-5 h-5" />
       </button>
 
@@ -175,8 +185,8 @@ export default function CollapsedChatRail({
           }}
           className={cn(iconButtonClass)}
           style={{
-            color: "var(--text-secondary)",
-            background: recentsOpen ? "var(--hover-bg)" : "transparent",
+            color: recentsOpen ? "white" : "var(--text-secondary)",
+            background: recentsOpen ? "var(--accent)" : "transparent",
           }}
           aria-label="Recents"
           aria-expanded={recentsOpen}
@@ -195,7 +205,17 @@ export default function CollapsedChatRail({
 
       <div className="flex-1" />
 
-      <div className="h-10 w-10" aria-hidden="true" />
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold"
+        style={{
+          borderColor: "var(--border-color)",
+          color: "var(--text-secondary)",
+          background: "var(--input-bg)",
+        }}
+        aria-hidden="true"
+      >
+        H
+      </div>
 
       {typeof document !== "undefined" && tooltip.open
         ? createPortal(
@@ -220,7 +240,7 @@ export default function CollapsedChatRail({
         ? createPortal(
             <div
               ref={popoverRef}
-              className="fixed z-[1001] w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-2xl"
+              className="fixed z-[1001] w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border shadow-2xl"
               style={{
                 left: recentsPos.x,
                 top: recentsPos.y,

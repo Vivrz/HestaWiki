@@ -12,7 +12,7 @@ interface ChatInputProps {
   placeholderMode?: "static" | "crossfade";
 }
 
-const PLACEHOLDER_PHRASES = ["How can I help you today?", "Type your message..."];
+const PLACEHOLDER_PHRASES = ["Ask anything about the company...", "Type your message..."];
 
 export default function ChatInput({
   value,
@@ -69,7 +69,7 @@ export default function ChatInput({
   return (
     <div className="w-full">
       <div 
-        className="flex items-end gap-2 rounded-[20px] border p-3 transition-all duration-200 focus-within:ring-1 focus-within:ring-[var(--text-secondary)] focus-within:border-[var(--text-secondary)] sm:gap-3" 
+        className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 focus-within:border-[var(--text-secondary)] focus-within:ring-1 focus-within:ring-[var(--text-secondary)] sm:px-5" 
         style={{ borderColor: 'var(--border-color)', background: 'var(--input-bg)' }}
       >
         <div className="relative min-w-0 flex-1">
@@ -78,10 +78,10 @@ export default function ChatInput({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholderMode === "crossfade" ? placeholderText : "Type your message..."}
-            rows={3}
+            placeholder={placeholderMode === "crossfade" ? placeholderText : "Ask anything about the company..."}
+            rows={1}
             disabled={disabled}
-            className="resize-none border-0 focus:ring-0 w-full"
+            className="max-h-32 min-h-[2.25rem] w-full resize-none border-0 px-0 py-2 text-sm focus:ring-0"
             style={{ 
               background: 'transparent',
               color: 'var(--text-primary)',
@@ -93,7 +93,7 @@ export default function ChatInput({
           onClick={onSend}
           disabled={disabled || !value.trim()}
           aria-label="Send message"
-          className="mb-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           style={{ background: 'var(--accent)' }}
         >
           <HiPaperAirplane aria-hidden="true" className="h-5 w-5 rotate-90" />

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "flowbite-react";
 import {
+  HiCog,
   HiOutlineBookmark,
   HiDotsHorizontal,
   HiOutlinePencil,
@@ -55,15 +55,20 @@ export default function ChatSidebar({
   }, []);
 
   return (
-    <div className="flex h-full w-[min(18rem,calc(100vw-2rem))] shrink-0 flex-col rounded-[24px] border transition-[background-color,border-color] duration-200" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
-      <div className="border-b p-4 transition-colors duration-200" style={{ borderColor: 'var(--border-color)' }}>
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>
-            Conversations
-          </p>
+    <div className="flex h-full w-[min(16.25rem,calc(100vw-4.5rem))] shrink-0 flex-col border-r transition-[background-color,border-color] duration-200" style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border-color)' }}>
+      <div className="px-4 pb-4 pt-7 transition-colors duration-200">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>
+              Recents
+            </p>
+            <p className="mt-1 text-sm transition-colors duration-200" style={{ color: 'var(--text-secondary)' }}>
+              Conversation history
+            </p>
+          </div>
           <button
             onClick={onToggle}
-            className="md:flex hidden" /* Hidden on mobile to avoid double-toggle since mobile handles it via backdrop */
+            className="flex"
             style={{
               width: '28px',
               height: '28px',
@@ -86,18 +91,24 @@ export default function ChatSidebar({
             </svg>
           </button>
         </div>
-        <Button
-          className="w-full rounded-[12px] border-none bg-[#4A4580] text-white hover:bg-[#3A3570] disabled:cursor-not-allowed disabled:opacity-60"
+        <button
+          type="button"
+          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          style={{
+            background: "var(--input-bg)",
+            borderColor: "var(--border-color)",
+            color: "var(--text-primary)",
+          }}
           onClick={onNewChat}
           disabled={newChatDisabled}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "var(--input-bg)")}
         >
-          <span className="flex items-center justify-center gap-2">
-            <HiPlus className="h-4 w-4" />
-            <span>New Chat</span>
-          </span>
-        </Button>
+          <HiPlus className="h-4 w-4" />
+          <span>New Chat</span>
+        </button>
       </div>
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <div className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
         {sessions.map((session) => {
           const isActive = session.id === activeSessionId;
           const isPinned = pinnedSessionIds.includes(session.id);
@@ -107,9 +118,10 @@ export default function ChatSidebar({
             <div key={session.id} className="relative group" data-chat-menu-scope>
               <button
                 onClick={() => onSelectSession(session.id)}
-                className="w-full rounded-2xl px-4 py-3 pr-10 text-left text-sm transition-[background-color,color] duration-200"
+                className="w-full rounded-lg border-l-2 px-3 py-3 pr-9 text-left text-sm transition-[background-color,color,border-color] duration-200"
                 style={{
                   background: isActive ? "var(--hover-bg)" : "transparent",
+                  borderColor: isActive ? "var(--accent)" : "transparent",
                   color: "var(--text-primary)",
                 }}
                 onMouseEnter={(e) => {
@@ -119,17 +131,19 @@ export default function ChatSidebar({
                   if (!isActive) e.currentTarget.style.background = "transparent";
                 }}
               >
-                <p className="truncate font-medium">
-                  {session.title}
-                  {isPinned ? (
-                    <span className="ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: "var(--hover-bg)", color: "var(--accent)" }}>
-                      PIN
-                    </span>
-                  ) : null}
-                </p>
-                <p className="mt-1 text-xs transition-colors duration-200" style={{ color: isActive ? "var(--accent)" : "var(--text-secondary)" }}>
-                  {formatDistanceToNow(new Date(session.createdAt))}
-                </p>
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-medium">
+                    {session.title}
+                    {isPinned ? (
+                      <span className="ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: "var(--input-bg)", color: "var(--accent)" }}>
+                        PIN
+                      </span>
+                    ) : null}
+                  </p>
+                  <span className="shrink-0 text-[11px]" style={{ color: isActive ? "var(--accent)" : "var(--text-secondary)" }}>
+                    {formatDistanceToNow(new Date(session.createdAt))}
+                  </span>
+                </div>
               </button>
 
               <button
@@ -163,8 +177,10 @@ export default function ChatSidebar({
                 >
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-100/60"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
                     style={{ color: "var(--text-primary)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     onClick={(event) => {
                       event.stopPropagation();
                       setOpenMenuId(null);
@@ -176,8 +192,10 @@ export default function ChatSidebar({
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-100/60"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
                     style={{ color: "var(--text-primary)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     onClick={(event) => {
                       event.stopPropagation();
                       setOpenMenuId(null);
@@ -189,7 +207,9 @@ export default function ChatSidebar({
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-500 transition-colors hover:bg-rose-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-500 transition-colors"
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     onClick={(event) => {
                       event.stopPropagation();
                       setOpenMenuId(null);
@@ -204,6 +224,18 @@ export default function ChatSidebar({
             </div>
           );
         })}
+      </div>
+      <div className="border-t p-4" style={{ borderColor: "var(--border-color)" }}>
+        <button
+          type="button"
+          className="flex h-11 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors"
+          style={{ color: "var(--text-primary)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          <HiCog className="h-5 w-5" />
+          <span>Settings</span>
+        </button>
       </div>
     </div>
   );
