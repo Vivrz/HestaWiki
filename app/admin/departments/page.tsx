@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import DepartmentCard from "@/components/admin/DepartmentCard";
-import { AdminPageHeader, AdminPanel } from "@/components/admin/AdminUI";
+import { AdminCard, AdminPageHeader } from "@/components/admin/AdminUI";
 
 interface Department {
   id: string;
@@ -31,7 +31,7 @@ export default function DepartmentsPage() {
       <AdminPageHeader title="Departments" subtitle="Keep team ownership clear so people can find and maintain the right sources quickly." />
 
       {loading ? (
-        <AdminPanel className="p-10 text-center text-sm text-[var(--admin-text)]">Loading teams...</AdminPanel>
+        <AdminCard className="p-10 text-center text-sm text-[var(--admin-muted)]">Loading departments...</AdminCard>
       ) : (
         <DepartmentCard departments={departments} onRefresh={fetchDepartments} />
       )}

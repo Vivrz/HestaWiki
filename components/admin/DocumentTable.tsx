@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DarkTableFrame } from "@/components/admin/AdminUI";
+import { TableFrame } from "@/components/admin/AdminUI";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -98,16 +98,16 @@ export default function DocumentTable() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="relative flex-1">
-          <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text)]" aria-hidden="true" />
+          <HiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-muted)]" aria-hidden="true" />
           <Input
-            className="border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] pl-9 text-[var(--admin-text)] placeholder:text-[var(--admin-text)]"
+            className="rounded-xl border-[var(--admin-border)] bg-[var(--admin-card)] pl-9 text-[var(--admin-link)] placeholder:text-[var(--admin-muted)]"
             placeholder="Search files by name"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select
-          className="min-w-[220px] border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)]"
+          className="min-w-[220px] rounded-xl border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)]"
           value={selectedDept}
           onChange={(e) => setSelectedDept(e.target.value)}
         >
@@ -123,31 +123,31 @@ export default function DocumentTable() {
       {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--admin-panel-border)] p-10 text-center text-sm text-[var(--admin-text)]">Loading files...</div>
+        <div className="rounded-[7px] border border-[var(--admin-border)] p-10 text-center text-sm text-[var(--admin-muted)]">Loading files...</div>
       ) : documents.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] p-10 text-center">
-          <p className="text-lg font-semibold text-[var(--admin-text)]">No files found</p>
-          <p className="mt-2 text-sm text-[var(--admin-text)]">Try a different search or team filter.</p>
+        <div className="rounded-[7px] border border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-10 text-center">
+          <p className="text-lg font-bold text-[var(--admin-heading)]">No files found</p>
+          <p className="mt-2 text-sm text-[var(--admin-muted)]">Try a different search or department filter.</p>
         </div>
       ) : (
-        <DarkTableFrame>
+        <TableFrame>
           <Table>
-            <TableHeader className="bg-[var(--admin-panel-soft)]">
-              <TableRow className="border-[var(--admin-panel-border)]">
-                <TableHead className="text-[var(--admin-faint)]">Name</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Team</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Type</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Version</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Status</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Added on</TableHead>
-                <TableHead className="text-[var(--admin-faint)]">Actions</TableHead>
+            <TableHeader className="bg-[var(--admin-table-head-bg)]">
+              <TableRow className="border-[var(--admin-border)]">
+                <TableHead className="text-[var(--admin-table-head-text)]">Name</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Department</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Type</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Version</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Status</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Added on</TableHead>
+                <TableHead className="text-[var(--admin-table-head-text)]">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-[var(--admin-panel-border)]">
+            <TableBody>
               {documents.map((doc) => (
-                <TableRow key={doc.id} className="border-[var(--admin-panel-border)] hover:bg-[var(--admin-panel-soft)]">
+                <TableRow key={doc.id} className="border-[var(--admin-border)] hover:bg-[var(--admin-soft)]">
                   <TableCell className="max-w-[260px]">
-                    <div className="truncate font-medium text-[var(--admin-text)]">{doc.name}</div>
+                    <div className="truncate font-semibold text-[var(--admin-heading)]">{doc.name}</div>
                   </TableCell>
                   <TableCell>
                     <Badge>{doc.department.name}</Badge>
@@ -157,20 +157,20 @@ export default function DocumentTable() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <span className="text-[var(--admin-text)]">v{doc.version}</span>
+                      <span className="text-[var(--admin-muted)]">v{doc.version}</span>
                       {doc.isLatest ? <Badge variant="success">Latest</Badge> : null}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant(doc.status)}>{doc.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-[var(--admin-text)]">{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-[var(--admin-muted)]">{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
                         size="icon"
                         variant="outline"
-                        className="border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
+                        className="border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
                         onClick={() => setSelectedDoc(doc)}
                         aria-label={`View ${doc.name}`}
                       >
@@ -185,7 +185,7 @@ export default function DocumentTable() {
               ))}
             </TableBody>
           </Table>
-        </DarkTableFrame>
+        </TableFrame>
       )}
 
       <Dialog
@@ -198,39 +198,39 @@ export default function DocumentTable() {
         {selectedDoc ? (
           <dl className="space-y-3 text-sm">
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Name</dt>
-              <dd className="text-[var(--admin-text)]">{selectedDoc.name}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Name</dt>
+              <dd className="text-[var(--admin-muted)]">{selectedDoc.name}</dd>
             </div>
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Team</dt>
-              <dd className="text-[var(--admin-text)]">{selectedDoc.department.name}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Department</dt>
+              <dd className="text-[var(--admin-muted)]">{selectedDoc.department.name}</dd>
             </div>
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Type</dt>
-              <dd className="text-[var(--admin-text)]">{selectedDoc.type}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Type</dt>
+              <dd className="text-[var(--admin-muted)]">{selectedDoc.type}</dd>
             </div>
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Status</dt>
-              <dd className="text-[var(--admin-text)]">{selectedDoc.status}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Status</dt>
+              <dd className="text-[var(--admin-muted)]">{selectedDoc.status}</dd>
             </div>
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Added by</dt>
-              <dd className="text-[var(--admin-text)]">{selectedDoc.uploadedBy.name ?? selectedDoc.uploadedBy.email}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Added by</dt>
+              <dd className="text-[var(--admin-muted)]">{selectedDoc.uploadedBy.name ?? selectedDoc.uploadedBy.email}</dd>
             </div>
             <div>
-              <dt className="font-medium text-[var(--admin-text)]">Added on</dt>
-              <dd className="text-[var(--admin-text)]">{new Date(selectedDoc.createdAt).toLocaleString()}</dd>
+              <dt className="font-semibold text-[var(--admin-heading)]">Added on</dt>
+              <dd className="text-[var(--admin-muted)]">{new Date(selectedDoc.createdAt).toLocaleString()}</dd>
             </div>
             {selectedDoc.sourceUrl ? (
               <div>
-                <dt className="font-medium text-[var(--admin-text)]">Source URL</dt>
-                <dd className="break-all text-[var(--admin-text)]">{selectedDoc.sourceUrl}</dd>
+                <dt className="font-semibold text-[var(--admin-heading)]">Source URL</dt>
+                <dd className="break-all text-[var(--admin-muted)]">{selectedDoc.sourceUrl}</dd>
               </div>
             ) : null}
             {selectedDoc.filePath ? (
               <div>
-                <dt className="font-medium text-[var(--admin-text)]">File path</dt>
-                <dd className="break-all text-[var(--admin-text)]">{selectedDoc.filePath}</dd>
+                <dt className="font-semibold text-[var(--admin-heading)]">File path</dt>
+                <dd className="break-all text-[var(--admin-muted)]">{selectedDoc.filePath}</dd>
               </div>
             ) : null}
             {selectedDoc.errorMessage ? (
@@ -261,7 +261,7 @@ export default function DocumentTable() {
           </div>
         }
       >
-        <p className="text-sm text-[var(--admin-text)]">
+        <p className="text-sm text-[var(--admin-muted)]">
           This will remove the file and its embeddings from search results. This action cannot be undone.
         </p>
       </Dialog>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { HiOutlineDocumentText, HiOutlineUpload } from "react-icons/hi";
 import UploadTabs from "@/components/admin/UploadTabs";
 import DocumentTable from "@/components/admin/DocumentTable";
-import { AdminPanel } from "@/components/admin/AdminUI";
+import { AdminCard } from "@/components/admin/AdminUI";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +22,8 @@ export default function DataManagementTabs({ initialTab, initialDept }: DataMana
   const [activeTab, setActiveTab] = useState<"upload" | "documents">(initialTab);
 
   return (
-    <AdminPanel className="p-4 sm:p-6">
-      <div className="mb-5 flex flex-wrap gap-2 border-b border-[var(--admin-panel-border)] pb-4">
+    <AdminCard className="p-4 sm:p-5">
+      <div className="mb-5 flex flex-wrap gap-2 border-b border-[var(--admin-border)] pb-4">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Button
             key={id}
@@ -31,8 +31,8 @@ export default function DataManagementTabs({ initialTab, initialDept }: DataMana
             onClick={() => setActiveTab(id)}
             className={cn(
               activeTab === id
-                ? "bg-[var(--admin-button)] text-[var(--admin-button-text)]"
-                : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]",
+                ? "bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-emphasis)]"
+                : "bg-[var(--admin-background)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]",
             )}
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
@@ -42,6 +42,6 @@ export default function DataManagementTabs({ initialTab, initialDept }: DataMana
       </div>
 
       {activeTab === "upload" ? <UploadTabs initialDept={initialDept} /> : <DocumentTable />}
-    </AdminPanel>
+    </AdminCard>
   );
 }

@@ -14,7 +14,7 @@ export default async function DataManagementPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <AdminPageHeader
         title="Data Management"
-        subtitle="Upload files or links, assign them to teams, and track whether they are ready for chat answers."
+        subtitle="Upload files or links, assign them to departments, and track whether they are ready for chat answers."
         actionLabel="Manage departments"
         actionHref="/admin/departments"
       />

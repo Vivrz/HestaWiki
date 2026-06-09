@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
-import { AdminPanel } from "@/components/admin/AdminUI";
+import { AdminCard, AdminCardHeader } from "@/components/admin/AdminUI";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -99,19 +99,17 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
 
   return (
     <div className="space-y-5">
-      <AdminPanel className="p-5">
+      <AdminCard className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--admin-text)]">Team directory</h2>
-              <p className="mt-1 text-sm text-[var(--admin-text)]">
-                {departments.length} team{departments.length === 1 ? "" : "s"} total
-              </p>
-            </div>
+            <AdminCardHeader
+              title="Department directory"
+              subtitle={`${departments.length} department${departments.length === 1 ? "" : "s"} total`}
+            />
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={filter === "all" ? "default" : "secondary"}
                 size="sm"
-                className={filter === "all" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                className={filter === "all" ? "bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-emphasis)]" : "bg-[var(--admin-background)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"}
                 onClick={() => setFilter("all")}
               >
                 All
@@ -119,7 +117,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
               <Button
                 variant={filter === "needs" ? "default" : "secondary"}
                 size="sm"
-                className={filter === "needs" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                className={filter === "needs" ? "bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-emphasis)]" : "bg-[var(--admin-background)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"}
                 onClick={() => setFilter("needs")}
               >
                 Needs files
@@ -127,18 +125,18 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
               <Button
                 variant={filter === "covered" ? "default" : "secondary"}
                 size="sm"
-                className={filter === "covered" ? "bg-white text-zinc-950 hover:bg-zinc-100" : "bg-[var(--admin-panel-soft)] text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"}
+                className={filter === "covered" ? "bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-emphasis)]" : "bg-[var(--admin-background)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"}
                 onClick={() => setFilter("covered")}
               >
                 Covered
               </Button>
-              <Button size="sm" onClick={() => setShowAdd(true)}>
+              <Button size="sm" className="bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-emphasis)]" onClick={() => setShowAdd(true)}>
                 <HiPlus className="h-4 w-4" />
                 Add team
               </Button>
             </div>
           </div>
-      </AdminPanel>
+      </AdminCard>
 
       {error ? <Alert variant="destructive">{error}</Alert> : null}
 
@@ -150,36 +148,36 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           const tone = toneForDepartment(dept.name);
 
           return (
-            <AdminPanel key={dept.id} className="p-4">
+            <AdminCard key={dept.id} className="p-4">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}>
                     <HiOutlineOfficeBuilding className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-xl font-semibold text-[var(--admin-text)]">{dept.name}</p>
-                    <p className="text-sm text-[var(--admin-text)]">
+                    <p className="text-xl font-bold text-[var(--admin-heading)]">{dept.name}</p>
+                    <p className="text-sm text-[var(--admin-muted)]">
                       {docCount} document{docCount === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
 
-                <div className="h-px bg-[var(--admin-panel-border)]" />
+                <div className="h-px bg-[var(--admin-border)]" />
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <p className="text-2xl font-semibold text-[var(--admin-text)]">{docCount}</p>
-                    <p className="text-xs text-[var(--admin-text)]">docs</p>
+                    <p className="text-2xl font-bold text-[var(--admin-heading)]">{docCount}</p>
+                    <p className="text-xs text-[var(--admin-muted)]">docs</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-semibold text-[var(--admin-text)]">{queryCount}</p>
-                    <p className="text-xs text-[var(--admin-text)]">queries</p>
+                    <p className="text-2xl font-bold text-[var(--admin-heading)]">{queryCount}</p>
+                    <p className="text-xs text-[var(--admin-muted)]">queries</p>
                   </div>
                   <div>
-                    <p className={`text-2xl font-semibold ${needsAction ? "text-[var(--admin-text)]" : "text-emerald-400"}`}>
+                    <p className={`text-2xl font-bold ${needsAction ? "text-[var(--admin-warning)]" : "text-[var(--admin-success)]"}`}>
                       {needsAction ? "Empty" : "Active"}
                     </p>
-                    <p className="text-xs text-[var(--admin-text)]">status</p>
+                    <p className="text-xs text-[var(--admin-muted)]">status</p>
                   </div>
                 </div>
 
@@ -187,7 +185,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] px-3 text-xs text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
+                    className="h-8 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=upload&dept=${dept.id}`)}
                   >
                     <HiUpload className="h-3.5 w-3.5" />
@@ -196,7 +194,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] px-3 text-xs text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
+                    className="h-8 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=documents&dept=${dept.id}`)}
                   >
                     <HiEye className="h-3.5 w-3.5" />
@@ -209,7 +207,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                       if (docCount === 0) setDeleteConfirm(dept);
                     }}
                     className={`ml-auto rounded-md p-1.5 ${
-                      docCount === 0 ? "text-rose-400 hover:bg-rose-500/10 hover:text-rose-300" : "cursor-not-allowed text-[var(--admin-faint)]"
+                      docCount === 0 ? "text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" : "cursor-not-allowed text-[var(--admin-faint)]"
                     }`}
                     aria-label={docCount === 0 ? `Delete ${dept.name}` : `${dept.name} cannot be deleted while documents exist`}
                     title={docCount === 0 ? "Delete department" : "Cannot delete while documents are assigned"}
@@ -218,7 +216,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   </button>
                 </div>
               </div>
-            </AdminPanel>
+            </AdminCard>
           );
         })}
 
@@ -226,11 +224,11 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex min-h-[250px] items-center justify-center rounded-[22px] border-2 border-dashed border-[var(--admin-panel-border)] bg-[var(--admin-panel)] text-[var(--admin-text)] transition hover:text-[var(--admin-text)]"
+            className="flex min-h-[250px] items-center justify-center rounded-[7px] border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)] hover:text-[var(--admin-primary)]"
           >
             <span className="flex flex-col items-center gap-2">
               <HiPlus className="h-7 w-7" />
-              <span className="text-lg font-semibold">Add department</span>
+              <span className="text-lg font-bold">Add department</span>
             </span>
           </button>
         ) : null}
@@ -244,13 +242,13 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
       >
         <form onSubmit={handleAdd} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="team-name" className="text-sm font-medium text-[var(--admin-text)]">Team name</label>
+            <label htmlFor="team-name" className="text-sm font-semibold text-[var(--admin-heading)]">Department name</label>
             <Input
               id="team-name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Marketing"
-              className="border-[var(--admin-panel-border)] bg-[var(--admin-panel-soft)] text-[var(--admin-text)] placeholder:text-[var(--admin-text)]"
+              className="rounded-xl border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] placeholder:text-[var(--admin-muted)]"
               required
             />
           </div>
@@ -283,8 +281,8 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           </div>
         }
       >
-        <p className="text-sm text-[var(--admin-text)]">
-          Delete <span className="font-semibold text-[var(--admin-text)]">{deleteConfirm?.name}</span>? This can only be done when no files are assigned.
+        <p className="text-sm text-[var(--admin-muted)]">
+          Delete <span className="font-semibold text-[var(--admin-heading)]">{deleteConfirm?.name}</span>? This can only be done when no files are assigned.
         </p>
       </Dialog>
     </div>
