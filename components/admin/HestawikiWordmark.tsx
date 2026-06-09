@@ -21,7 +21,7 @@ export default function HestawikiWordmark({
         className={cn(
           "font-display font-semibold tracking-tight",
           isSmall ? "text-sm" : "text-lg",
-          isDark ? "text-white" : "text-slate-900",
+          isDark ? "text-white" : "text-[var(--admin-heading)]",
         )}
       >
         Hestawiki
@@ -32,7 +32,7 @@ export default function HestawikiWordmark({
           isSmall ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]",
           isDark
             ? "border-emerald-200/20 bg-emerald-400/10 text-emerald-200"
-            : "border-emerald-300/40 bg-emerald-400/10 text-emerald-700",
+            : "border-emerald-300/40 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200",
         )}
       >
         Admin

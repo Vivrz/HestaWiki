@@ -29,17 +29,17 @@ export function Dialog({
     >
       <div
         className={cn(
-          "w-full overflow-hidden rounded-2xl border border-[var(--admin-panel-border)] bg-[var(--admin-panel)] text-[var(--admin-text)] shadow-2xl",
+          "w-full overflow-hidden rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] shadow-2xl",
           maxWidthClassName,
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[var(--admin-panel-border)] px-6 py-4">
-          <h2 className="text-lg font-semibold text-[var(--admin-text)]">{title}</h2>
+        <div className="flex items-center justify-between border-b border-[var(--admin-border)] px-6 py-4">
+          <h2 className="text-lg font-bold text-[var(--admin-heading)]">{title}</h2>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-[var(--admin-text)] hover:bg-[var(--admin-panel-soft)]"
+            className="h-8 w-8 text-[var(--admin-muted)] hover:bg-[var(--admin-soft)] hover:text-[var(--admin-primary)]"
             onClick={() => onOpenChange(false)}
             aria-label="Close dialog"
           >
@@ -47,7 +47,7 @@ export function Dialog({
           </Button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
-        {footer ? <div className="border-t border-[var(--admin-panel-border)] px-6 py-4">{footer}</div> : null}
+        {footer ? <div className="border-t border-[var(--admin-border)] px-6 py-4">{footer}</div> : null}
       </div>
     </div>
   );
