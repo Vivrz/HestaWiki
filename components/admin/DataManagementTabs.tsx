@@ -22,7 +22,7 @@ export default function DataManagementTabs({ initialTab, initialDept }: DataMana
   const [activeTab, setActiveTab] = useState<"upload" | "documents">(initialTab);
 
   return (
-    <AdminCard className="p-4 sm:p-5">
+    <AdminCard className="admin-static-card p-4 sm:p-5">
       <div className="mb-5 flex flex-wrap gap-2 border-b border-[var(--admin-border)] pb-4">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Button

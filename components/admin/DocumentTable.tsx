@@ -139,7 +139,7 @@ export default function DocumentTable() {
                 <TableHead className="text-[var(--admin-table-head-text)]">Type</TableHead>
                 <TableHead className="text-[var(--admin-table-head-text)]">Version</TableHead>
                 <TableHead className="text-[var(--admin-table-head-text)]">Status</TableHead>
-                <TableHead className="text-[var(--admin-table-head-text)]">Added on</TableHead>
+                <TableHead className="!text-[var(--admin-table-head-text)]">Added on</TableHead>
                 <TableHead className="text-[var(--admin-table-head-text)]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -164,13 +164,13 @@ export default function DocumentTable() {
                   <TableCell>
                     <Badge variant={statusVariant(doc.status)}>{doc.status}</Badge>
                   </TableCell>
-                  <TableCell className="text-[var(--admin-muted)]">{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="whitespace-nowrap !text-[var(--admin-link)]">{new Date(doc.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         size="icon"
                         variant="outline"
-                        className="border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
+                        className="h-9 w-9 border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] hover:border-[var(--admin-primary)] hover:!bg-[var(--admin-soft)] hover:text-[var(--admin-primary)] focus-visible:ring-[var(--admin-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--admin-card)]"
                         onClick={() => setSelectedDoc(doc)}
                         aria-label={`View ${doc.name}`}
                       >

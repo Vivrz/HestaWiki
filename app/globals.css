@@ -244,12 +244,25 @@
     box-shadow: 0 12px 28px rgba(42, 53, 71, 0.08);
   }
 
+  .admin-dashboard-card.admin-static-card:hover {
+    transform: none;
+    box-shadow: 0 1px 4px rgba(133, 146, 173, 0.2);
+  }
+
   .admin-light .admin-dashboard-card:hover {
     border-color: color-mix(in oklab, var(--admin-primary) 28%, var(--admin-border));
   }
 
+  .admin-light .admin-dashboard-card.admin-static-card:hover {
+    border-color: var(--admin-border);
+  }
+
   .admin-dark .admin-dashboard-card:hover {
     box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2);
+  }
+
+  .admin-dark .admin-dashboard-card.admin-static-card:hover {
+    box-shadow: 0 1px 4px rgba(133, 146, 173, 0.2);
   }
 
   .admin-kpi-icon {
