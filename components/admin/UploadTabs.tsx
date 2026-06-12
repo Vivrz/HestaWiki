@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminCard, AdminCardHeader } from "@/components/admin/AdminUI";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import RateLimitToast, { type RateLimitNotice } from "@/components/ui/RateLimitToast";
 import { HiCheckCircle, HiDocumentText, HiExclamationCircle, HiLink, HiUpload } from "react-icons/hi";
 
 interface Department {
@@ -34,6 +35,33 @@ type ResultState =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 
+async function readRateLimitNotice(res: Response): Promise<RateLimitNotice> {
+  let retryAfter = Number(res.headers.get("Retry-After"));
+  if (!Number.isFinite(retryAfter) || retryAfter <= 0) retryAfter = 0;
+
+  try {
+    const body = (await res.json()) as { error?: string; retryAfter?: number };
+    const bodyRetryAfter =
+      typeof body.retryAfter === "number" &&
+      Number.isFinite(body.retryAfter) &&
+      body.retryAfter > 0
+        ? body.retryAfter
+        : undefined;
+
+    return {
+      message: body.error && body.error !== "Rate limit exceeded"
+        ? body.error
+        : "Please wait before trying again.",
+      retryAfter: bodyRetryAfter ?? (retryAfter || undefined),
+    };
+  } catch {
+    return {
+      message: "Please wait before trying again.",
+      retryAfter: retryAfter || undefined,
+    };
+  }
+}
+
 export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [queueDocs, setQueueDocs] = useState<QueueDocument[]>([]);
@@ -42,6 +70,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ResultState>({ kind: "idle" });
+  const [rateLimitNotice, setRateLimitNotice] = useState<RateLimitNotice | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -79,6 +108,10 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const dismissRateLimitNotice = useCallback(() => {
+    setRateLimitNotice(null);
+  }, []);
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
@@ -104,6 +137,10 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
         });
 
         if (!res.ok) {
+          if (res.status === 429) {
+            setRateLimitNotice(await readRateLimitNotice(res));
+            return;
+          }
           const err = (await res.json()) as { error?: string };
           setResult({ kind: "error", message: err.error ?? "Upload failed." });
         } else {
@@ -119,6 +156,10 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
         });
 
         if (!res.ok) {
+          if (res.status === 429) {
+            setRateLimitNotice(await readRateLimitNotice(res));
+            return;
+          }
           const err = (await res.json()) as { error?: string };
           setResult({ kind: "error", message: err.error ?? "Could not queue URL." });
         } else {
@@ -141,8 +182,10 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_330px]">
-      <AdminCard className="p-5">
+    <>
+      <RateLimitToast notice={rateLimitNotice} onDismiss={dismissRateLimitNotice} />
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_330px]">
+        <AdminCard className="p-5">
           <div className="flex gap-5 border-b border-[var(--admin-border)] pb-3">
             <button
               type="button"
@@ -249,9 +292,9 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
             </Alert>
           ) : null}
         </div>
-      </AdminCard>
+        </AdminCard>
 
-      <AdminCard className="p-5">
+        <AdminCard className="p-5">
         <AdminCardHeader
           title="Ingestion queue"
           subtitle={`${queueDocs.length} item${queueDocs.length === 1 ? "" : "s"} recently queued`}
@@ -276,7 +319,8 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
             ))
           )}
         </div>
-      </AdminCard>
-    </div>
+        </AdminCard>
+      </div>
+    </>
   );
 }

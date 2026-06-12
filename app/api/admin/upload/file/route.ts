@@ -9,6 +9,11 @@ import {
   maxUploadBytes,
   validateMutationRequestOrigin,
 } from "@/lib/api/security";
+import {
+  adminRagRateLimitPolicy,
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/api/rate-limit";
 import { markEmbeddingsAsNotLatest } from "@/lib/api/versioning";
 
 export async function POST(req: NextRequest) {
@@ -18,6 +23,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(
+    adminRagRateLimitPolicy(),
+    session.user.id,
+  );
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   const formData = await req.formData();
@@ -116,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       { docId: doc.id, message: "Processing started" },
-      { status: 202 }
+      { status: 202, headers: rateLimit.headers }
     );
   } catch {
     if (fs.existsSync(filePath)) {

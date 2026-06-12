@@ -47,7 +47,5 @@ docker-compose.yml
 docker/postgres/init/01-enable-pgvector.sql
 hestabit-chatbot.postman_collection.json
 issues.md
-lib/api/security.ts
-lib/api/versioning.ts
 prisma.config.ts
 scripts/docker-smoke.sh

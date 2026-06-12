@@ -52,6 +52,13 @@ Edit `.env.local` and fill in:
 - `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`
 - `ADMIN_EMAIL` — email of the admin user
 - `OLLAMA_BASE_URL` — defaults to `http://localhost:11434`
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` — enables API rate limiting
+- `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS` — normal chat sustained limit, default `20` per `3600` seconds
+- `RATE_LIMIT_BURST_REQUESTS`, `RATE_LIMIT_BURST_WINDOW_SECONDS` — normal chat burst limit, default `5` per `10` seconds
+- `ADMIN_RAG_RATE_LIMIT_REQUESTS`, `ADMIN_RAG_RATE_LIMIT_WINDOW_SECONDS` — admin upload/RAG sustained limit, default `10` per `3600` seconds
+- `ADMIN_RAG_RATE_LIMIT_BURST_REQUESTS`, `ADMIN_RAG_RATE_LIMIT_BURST_WINDOW_SECONDS` — admin upload/RAG burst limit, default `2` per `60` seconds
+
+If the Upstash Redis variables are missing, rate limiting fails open so local development is not blocked.
 
 ### 5. Run database migrations and seed
 

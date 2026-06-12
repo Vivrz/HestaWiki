@@ -16,6 +16,11 @@ import {
   cuidSchema,
   validateMutationRequestOrigin,
 } from "@/lib/api/security";
+import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  userChatRateLimitPolicy,
+} from "@/lib/api/rate-limit";
 
 const chatRequestSchema = z.object({
   sessionId: cuidSchema,
@@ -54,6 +59,11 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
+  }
+
+  const rateLimit = await checkRateLimit(userChatRateLimitPolicy(), user.id);
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   let payload: z.infer<typeof chatRequestSchema>;
@@ -213,6 +223,7 @@ export async function POST(req: NextRequest) {
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Content-Type-Options": "nosniff",
+      ...rateLimit.headers,
     },
   });
 }

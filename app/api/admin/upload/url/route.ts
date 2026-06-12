@@ -8,6 +8,11 @@ import {
   isAllowedCrawlUrl,
   validateMutationRequestOrigin,
 } from "@/lib/api/security";
+import {
+  adminRagRateLimitPolicy,
+  checkRateLimit,
+  rateLimitExceededResponse,
+} from "@/lib/api/rate-limit";
 import { markEmbeddingsAsNotLatest } from "@/lib/api/versioning";
 
 const uploadUrlSchema = z.object({
@@ -22,6 +27,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(
+    adminRagRateLimitPolicy(),
+    session.user.id,
+  );
+  if (!rateLimit.allowed) {
+    return rateLimitExceededResponse(rateLimit);
   }
 
   let payload: z.infer<typeof uploadUrlSchema>;
@@ -88,5 +101,8 @@ export async function POST(req: NextRequest) {
 
   ingestDocument(doc.id).catch(console.error);
 
-  return NextResponse.json({ docId: doc.id }, { status: 202 });
+  return NextResponse.json(
+    { docId: doc.id },
+    { status: 202, headers: rateLimit.headers },
+  );
 }
