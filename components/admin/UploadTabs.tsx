@@ -79,7 +79,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
       .then((data: Department[]) => setDepartments(data));
   }, []);
 
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/documents");
       const docs = (await res.json()) as QueueDocument[];
@@ -90,11 +90,22 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
     } catch {
       setQueueDocs([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadQueue();
-  }, []);
+  }, [loadQueue]);
+
+  useEffect(() => {
+    const hasProcessingDocument = queueDocs.some((doc) => doc.status === "processing");
+    if (!hasProcessingDocument) return;
+
+    const intervalId = window.setInterval(() => {
+      loadQueue();
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadQueue, queueDocs]);
 
   const selectedFile = fileRef.current?.files?.[0] ?? null;
   const canSubmit = useMemo(() => {

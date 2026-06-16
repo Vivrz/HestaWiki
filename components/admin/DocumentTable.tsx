@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { HiEye, HiSearch, HiTrash } from "react-icons/hi";
+import { HiExternalLink, HiEye, HiSearch, HiTrash } from "react-icons/hi";
 
 interface Department {
   id: string;
@@ -54,15 +54,19 @@ export default function DocumentTable() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const fetchDocuments = useCallback(async () => {
-    setLoading(true);
+  const fetchDocuments = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const params = new URLSearchParams();
     if (selectedDept) params.set("department", selectedDept);
     if (debouncedSearch) params.set("search", debouncedSearch);
     const res = await fetch(`/api/admin/documents?${params.toString()}`);
     const data = (await res.json()) as Document[];
     setDocuments(data);
-    setLoading(false);
+    setSelectedDoc((current) => {
+      if (!current) return null;
+      return data.find((doc) => doc.id === current.id) ?? current;
+    });
+    if (showLoading) setLoading(false);
   }, [selectedDept, debouncedSearch]);
 
   useEffect(() => {
@@ -74,6 +78,17 @@ export default function DocumentTable() {
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
+
+  useEffect(() => {
+    const hasProcessingDocument = documents.some((doc) => doc.status === "processing");
+    if (!hasProcessingDocument) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchDocuments(false);
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [documents, fetchDocuments]);
 
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/admin/documents/${id}`, { method: "DELETE" });
@@ -93,6 +108,10 @@ export default function DocumentTable() {
     if (status === "failed") return "destructive" as const;
     return "warning" as const;
   };
+
+  const previewUrl = selectedDoc?.filePath
+    ? `/api/admin/documents/${selectedDoc.id}/preview`
+    : "";
 
   return (
     <div className="space-y-5">
@@ -194,49 +213,95 @@ export default function DocumentTable() {
           if (!open) setSelectedDoc(null);
         }}
         title="File details"
+        maxWidthClassName="max-w-7xl"
       >
         {selectedDoc ? (
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Name</dt>
-              <dd className="text-[var(--admin-muted)]">{selectedDoc.name}</dd>
+          <div className={previewUrl ? "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]" : "max-w-2xl"}>
+            <div className="rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)] p-4">
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Name</dt>
+                  <dd className="break-words text-[var(--admin-muted)]">{selectedDoc.name}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Department</dt>
+                  <dd className="text-[var(--admin-muted)]">{selectedDoc.department.name}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Type</dt>
+                  <dd className="text-[var(--admin-muted)]">{selectedDoc.type}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Status</dt>
+                  <dd>
+                    <Badge variant={statusVariant(selectedDoc.status)}>{selectedDoc.status}</Badge>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Version</dt>
+                  <dd className="text-[var(--admin-muted)]">
+                    v{selectedDoc.version}{selectedDoc.isLatest ? " · Latest" : ""}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Added by</dt>
+                  <dd className="break-words text-[var(--admin-muted)]">{selectedDoc.uploadedBy.name ?? selectedDoc.uploadedBy.email}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-[var(--admin-heading)]">Added on</dt>
+                  <dd className="text-[var(--admin-muted)]">{new Date(selectedDoc.createdAt).toLocaleString()}</dd>
+                </div>
+                {selectedDoc.sourceUrl ? (
+                  <div>
+                    <dt className="font-semibold text-[var(--admin-heading)]">Source URL</dt>
+                    <dd>
+                      <a
+                        href={selectedDoc.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex max-w-full items-center gap-1 break-all text-[var(--admin-primary)] hover:underline"
+                      >
+                        {selectedDoc.sourceUrl}
+                        <HiExternalLink className="h-4 w-4 shrink-0" />
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+                {selectedDoc.filePath ? (
+                  <div>
+                    <dt className="font-semibold text-[var(--admin-heading)]">File path</dt>
+                    <dd className="break-all text-[var(--admin-muted)]">{selectedDoc.filePath}</dd>
+                  </div>
+                ) : null}
+                {selectedDoc.errorMessage ? (
+                  <Alert variant="destructive">{selectedDoc.errorMessage}</Alert>
+                ) : null}
+              </dl>
             </div>
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Department</dt>
-              <dd className="text-[var(--admin-muted)]">{selectedDoc.department.name}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Type</dt>
-              <dd className="text-[var(--admin-muted)]">{selectedDoc.type}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Status</dt>
-              <dd className="text-[var(--admin-muted)]">{selectedDoc.status}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Added by</dt>
-              <dd className="text-[var(--admin-muted)]">{selectedDoc.uploadedBy.name ?? selectedDoc.uploadedBy.email}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[var(--admin-heading)]">Added on</dt>
-              <dd className="text-[var(--admin-muted)]">{new Date(selectedDoc.createdAt).toLocaleString()}</dd>
-            </div>
-            {selectedDoc.sourceUrl ? (
-              <div>
-                <dt className="font-semibold text-[var(--admin-heading)]">Source URL</dt>
-                <dd className="break-all text-[var(--admin-muted)]">{selectedDoc.sourceUrl}</dd>
+
+            {previewUrl ? (
+              <div className="min-w-0 overflow-hidden rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--admin-heading)]">Document preview</p>
+                    <p className="text-xs text-[var(--admin-muted)]">{selectedDoc.type.toUpperCase()}</p>
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={previewUrl} target="_blank" rel="noreferrer">
+                      <HiExternalLink className="h-4 w-4" />
+                      Open in new tab
+                    </a>
+                  </Button>
+                </div>
+                <iframe
+                  key={previewUrl}
+                  src={previewUrl}
+                  title={`Preview of ${selectedDoc.name}`}
+                  className="h-[62vh] min-h-[460px] w-full bg-white"
+                />
               </div>
             ) : null}
-            {selectedDoc.filePath ? (
-              <div>
-                <dt className="font-semibold text-[var(--admin-heading)]">File path</dt>
-                <dd className="break-all text-[var(--admin-muted)]">{selectedDoc.filePath}</dd>
-              </div>
-            ) : null}
-            {selectedDoc.errorMessage ? (
-              <Alert variant="destructive">{selectedDoc.errorMessage}</Alert>
-            ) : null}
-          </dl>
+          </div>
         ) : null}
       </Dialog>
 
