@@ -10,6 +10,9 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import ChatInput from "@/components/chat/ChatInput";
 import RateLimitToast, { type RateLimitNotice } from "@/components/ui/RateLimitToast";
+import RateLimitCountdownBadge from "@/components/ui/RateLimitCountdownBadge";
+import { usePersistentRateLimitCountdown } from "@/components/ui/useRateLimitCountdown";
+import { readRateLimitNotice } from "@/lib/rate-limit-client";
 import {
   HiLogout,
   HiMenuAlt2,
@@ -39,6 +42,7 @@ interface ChatSession {
 }
 
 const PINNED_CHATS_STORAGE_KEY = "chat:pinned-session-ids";
+const CHAT_RATE_LIMIT_STORAGE_KEY = "rate-limit:chat";
 
 function useTypewriterText(text: string, speedMs: number, resetKey: string | null) {
   const [displayText, setDisplayText] = useState("");
@@ -60,33 +64,6 @@ function useTypewriterText(text: string, speedMs: number, resetKey: string | nul
   return displayText;
 }
 
-async function readRateLimitNotice(res: Response): Promise<RateLimitNotice> {
-  let retryAfter = Number(res.headers.get("Retry-After"));
-  if (!Number.isFinite(retryAfter) || retryAfter <= 0) retryAfter = 0;
-
-  try {
-    const body = (await res.json()) as { error?: string; retryAfter?: number };
-    const bodyRetryAfter =
-      typeof body.retryAfter === "number" &&
-      Number.isFinite(body.retryAfter) &&
-      body.retryAfter > 0
-        ? body.retryAfter
-        : undefined;
-
-    return {
-      message: body.error && body.error !== "Rate limit exceeded"
-        ? body.error
-        : "Please wait before trying again.",
-      retryAfter: bodyRetryAfter ?? (retryAfter || undefined),
-    };
-  } catch {
-    return {
-      message: "Please wait before trying again.",
-      retryAfter: retryAfter || undefined,
-    };
-  }
-}
-
 function ChatContent() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "there";
@@ -99,7 +76,13 @@ function ChatContent() {
   const [streaming, setStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState("");
-  const [rateLimitNotice, setRateLimitNotice] = useState<RateLimitNotice | null>(null);
+  const {
+    toastNotice: rateLimitToastNotice,
+    active: rateLimitActive,
+    remainingSeconds: rateLimitRemainingSeconds,
+    startRateLimit,
+    dismissToast: dismissRateLimitToast,
+  } = usePersistentRateLimitCountdown(CHAT_RATE_LIMIT_STORAGE_KEY);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [pinnedSessionIds, setPinnedSessionIds] = useState<string[]>([]);
@@ -173,10 +156,6 @@ function ChatContent() {
     if (authRedirectTriggered.current) return;
     authRedirectTriggered.current = true;
     signOut({ callbackUrl: "/auth/signin" });
-  }, []);
-
-  const dismissRateLimitNotice = useCallback(() => {
-    setRateLimitNotice(null);
   }, []);
 
   const scrollToBottom = () => {
@@ -421,7 +400,7 @@ function ChatContent() {
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || streaming) return;
+    if (!trimmed || streaming || rateLimitActive) return;
 
     let sessionId = activeSessionId;
 
@@ -446,9 +425,10 @@ function ChatContent() {
       }
     }
 
+    const optimisticMessageId = crypto.randomUUID();
     setMessages((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), role: "user", content: trimmed, createdAt: new Date().toISOString() },
+      { id: optimisticMessageId, role: "user", content: trimmed, createdAt: new Date().toISOString() },
     ]);
     setInput("");
     setStreaming(true);
@@ -467,7 +447,10 @@ function ChatContent() {
         throw new Error("Session expired");
       }
       if (res.status === 429) {
-        setRateLimitNotice(await readRateLimitNotice(res));
+        const notice = await readRateLimitNotice(res);
+        startRateLimit(notice);
+        setMessages((prev) => prev.filter((message) => message.id !== optimisticMessageId));
+        setInput(trimmed);
         return;
       }
       if (!res.ok || !res.body) throw new Error("Failed to send message");
@@ -498,7 +481,7 @@ function ChatContent() {
 
   return (
     <div className="flex h-screen overflow-hidden transition-colors duration-200" style={{ background: 'var(--chat-bg)', color: 'var(--text-primary)' }}>
-      <RateLimitToast notice={rateLimitNotice} onDismiss={dismissRateLimitNotice} />
+      <RateLimitToast notice={rateLimitToastNotice} onDismiss={dismissRateLimitToast} />
       {(renameModal.open || deleteModal.open) ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
@@ -678,6 +661,7 @@ function ChatContent() {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            <RateLimitCountdownBadge remainingSeconds={rateLimitRemainingSeconds} />
             <button
               onClick={toggleTheme}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -803,7 +787,7 @@ function ChatContent() {
                 value={input}
                 onChange={setInput}
                 onSend={handleSend}
-                disabled={streaming}
+                disabled={streaming || rateLimitActive}
                 placeholderMode={messages.length === 0 ? "crossfade" : "static"}
               />
             </div>

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { AdminCard, AdminCardHeader } from "@/components/admin/AdminUI";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import RateLimitToast, { type RateLimitNotice } from "@/components/ui/RateLimitToast";
+import { useAdminRateLimit } from "@/components/admin/AdminRateLimitContext";
+import { readRateLimitNotice } from "@/lib/rate-limit-client";
 import { HiCheckCircle, HiDocumentText, HiExclamationCircle, HiLink, HiUpload } from "react-icons/hi";
 
 interface Department {
@@ -35,34 +36,8 @@ type ResultState =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string };
 
-async function readRateLimitNotice(res: Response): Promise<RateLimitNotice> {
-  let retryAfter = Number(res.headers.get("Retry-After"));
-  if (!Number.isFinite(retryAfter) || retryAfter <= 0) retryAfter = 0;
-
-  try {
-    const body = (await res.json()) as { error?: string; retryAfter?: number };
-    const bodyRetryAfter =
-      typeof body.retryAfter === "number" &&
-      Number.isFinite(body.retryAfter) &&
-      body.retryAfter > 0
-        ? body.retryAfter
-        : undefined;
-
-    return {
-      message: body.error && body.error !== "Rate limit exceeded"
-        ? body.error
-        : "Please wait before trying again.",
-      retryAfter: bodyRetryAfter ?? (retryAfter || undefined),
-    };
-  } catch {
-    return {
-      message: "Please wait before trying again.",
-      retryAfter: retryAfter || undefined,
-    };
-  }
-}
-
 export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
+  const { active: rateLimitActive, startRateLimit } = useAdminRateLimit();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [queueDocs, setQueueDocs] = useState<QueueDocument[]>([]);
   const [activeTab, setActiveTab] = useState<SourceTab>("file");
@@ -70,7 +45,6 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [url, setUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ResultState>({ kind: "idle" });
-  const [rateLimitNotice, setRateLimitNotice] = useState<RateLimitNotice | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -109,19 +83,15 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
   const selectedFile = fileRef.current?.files?.[0] ?? null;
   const canSubmit = useMemo(() => {
-    if (!departmentId || uploading) return false;
+    if (!departmentId || uploading || rateLimitActive) return false;
     if (activeTab === "file") return !!selectedFile;
     return /^https?:\/\//i.test(url.trim());
-  }, [activeTab, departmentId, selectedFile, uploading, url]);
+  }, [activeTab, departmentId, rateLimitActive, selectedFile, uploading, url]);
 
   const clearInputs = () => {
     setUrl("");
     if (fileRef.current) fileRef.current.value = "";
   };
-
-  const dismissRateLimitNotice = useCallback(() => {
-    setRateLimitNotice(null);
-  }, []);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -149,7 +119,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
         if (!res.ok) {
           if (res.status === 429) {
-            setRateLimitNotice(await readRateLimitNotice(res));
+            startRateLimit(await readRateLimitNotice(res));
             return;
           }
           const err = (await res.json()) as { error?: string };
@@ -168,7 +138,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
         if (!res.ok) {
           if (res.status === 429) {
-            setRateLimitNotice(await readRateLimitNotice(res));
+            startRateLimit(await readRateLimitNotice(res));
             return;
           }
           const err = (await res.json()) as { error?: string };
@@ -194,7 +164,6 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
   return (
     <>
-      <RateLimitToast notice={rateLimitNotice} onDismiss={dismissRateLimitNotice} />
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_330px]">
         <AdminCard className="p-5">
           <div className="flex gap-5 border-b border-[var(--admin-border)] pb-3">

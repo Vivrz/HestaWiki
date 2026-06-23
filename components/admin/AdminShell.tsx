@@ -3,10 +3,18 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { ThemeProvider, useTheme } from "next-themes";
 import { Icon } from "@iconify/react";
 import SimpleBar from "simplebar-react";
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AMLogo,
   AMMenu,
@@ -16,6 +24,12 @@ import {
 import "tailwind-sidebar/styles.css";
 import HestawikiWordmark from "@/components/admin/HestawikiWordmark";
 import { Button } from "@/components/ui/button";
+import RateLimitCountdownBadge from "@/components/ui/RateLimitCountdownBadge";
+import RateLimitToast from "@/components/ui/RateLimitToast";
+import {
+  AdminRateLimitProvider,
+  useAdminRateLimit,
+} from "@/components/admin/AdminRateLimitContext";
 
 const navSections = [
   {
@@ -35,17 +49,70 @@ const navSections = [
   },
 ];
 
+type AdminTheme = "light" | "dark";
+
+interface AdminThemeContextValue {
+  theme: AdminTheme;
+  setTheme: (theme: AdminTheme) => void;
+}
+
+const AdminThemeContext = createContext<AdminThemeContextValue | null>(null);
+
+function applyAdminTheme(theme: AdminTheme) {
+  const root = document.documentElement;
+  if (theme === "dark") {
+    root.classList.add("admin-dark");
+    root.classList.remove("admin-light");
+  } else {
+    root.classList.add("admin-light");
+    root.classList.remove("admin-dark");
+  }
+}
+
+function AdminThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<AdminTheme>("light");
+  const loadedStoredTheme = useRef(false);
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("admin-theme") === "dark" ? "dark" : "light";
+    loadedStoredTheme.current = true;
+    setThemeState(storedTheme);
+  }, []);
+
+  useLayoutEffect(() => {
+    applyAdminTheme(theme);
+    if (loadedStoredTheme.current) {
+      localStorage.setItem("admin-theme", theme);
+    }
+  }, [theme]);
+
+  const value = useMemo<AdminThemeContextValue>(() => ({
+    theme,
+    setTheme: setThemeState,
+  }), [theme]);
+
+  return (
+    <AdminThemeContext.Provider value={value}>
+      {children}
+    </AdminThemeContext.Provider>
+  );
+}
+
+function useAdminTheme() {
+  const context = useContext(AdminThemeContext);
+  if (!context) {
+    throw new Error("useAdminTheme must be used within AdminThemeProvider");
+  }
+  return context;
+}
+
 function isActivePath(pathname: string, href: string) {
   return href === "/admin" ? pathname === href : pathname.startsWith(href);
 }
 
 function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  const isDark = mounted && resolvedTheme === "dark";
+  const { theme, setTheme } = useAdminTheme();
+  const isDark = theme === "dark";
 
   return (
     <button
@@ -94,8 +161,7 @@ function renderSidebarItems(pathname: string, onClose?: () => void) {
 
 function SidebarLayout({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
-  const { theme } = useTheme();
-  const sidebarMode = theme === "light" || theme === "dark" ? theme : undefined;
+  const { theme } = useAdminTheme();
 
   return (
     <AMSidebar
@@ -104,7 +170,7 @@ function SidebarLayout({ onClose }: { onClose?: () => void }) {
       showProfile={false}
       width="270px"
       showTrigger={false}
-      mode={sidebarMode}
+      mode={theme}
       className="fixed left-0 top-0 border border-[var(--admin-border)] bg-[var(--admin-card)] z-10 h-screen"
     >
       <div className="px-6 flex items-center brand-logo overflow-hidden">
@@ -135,6 +201,7 @@ function SidebarLayout({ onClose }: { onClose?: () => void }) {
 
 function AdminHeader({ onMenu }: { onMenu: () => void }) {
   const [isSticky, setIsSticky] = useState(false);
+  const { remainingSeconds } = useAdminRateLimit();
 
   useEffect(() => {
     const handleScroll = () => setIsSticky(window.scrollY > 50);
@@ -174,6 +241,7 @@ function AdminHeader({ onMenu }: { onMenu: () => void }) {
           </div>
 
           <div className="flex items-center">
+            <RateLimitCountdownBadge remainingSeconds={remainingSeconds} tone="admin" className="mr-2" />
             <ThemeToggle />
             <Button
               asChild
@@ -189,6 +257,7 @@ function AdminHeader({ onMenu }: { onMenu: () => void }) {
         </div>
 
         <div className="flex xl:hidden items-center">
+          <RateLimitCountdownBadge remainingSeconds={remainingSeconds} tone="admin" className="mr-2" />
           <ThemeToggle />
         </div>
       </nav>
@@ -198,9 +267,11 @@ function AdminHeader({ onMenu }: { onMenu: () => void }) {
 
 function AdminShellInner({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { toastNotice, dismissToast } = useAdminRateLimit();
 
   return (
     <div className="min-h-screen bg-[var(--admin-background)] font-[var(--font-admin)] text-[var(--admin-heading)]">
+      <RateLimitToast notice={toastNotice} onDismiss={dismissToast} />
       <div className="flex w-full min-h-screen">
         <div className="page-wrapper flex w-full">
           <div className="xl:block hidden">
@@ -234,15 +305,10 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
-      storageKey="admin-theme"
-      value={{ light: "admin-light", dark: "admin-dark" }}
-      disableTransitionOnChange
-    >
-      <AdminShellInner>{children}</AdminShellInner>
-    </ThemeProvider>
+    <AdminThemeProvider>
+      <AdminRateLimitProvider>
+        <AdminShellInner>{children}</AdminShellInner>
+      </AdminRateLimitProvider>
+    </AdminThemeProvider>
   );
 }

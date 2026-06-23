@@ -3,28 +3,15 @@
 import { useEffect, useState } from "react";
 import { HiExclamationCircle, HiX } from "react-icons/hi";
 import { cn } from "@/lib/utils";
+import { type RateLimitNotice, formatCountdown } from "@/lib/rate-limit-client";
+import { useRateLimitCountdown } from "@/components/ui/useRateLimitCountdown";
 
-export interface RateLimitNotice {
-  message?: string;
-  retryAfter?: number;
-}
+export type { RateLimitNotice };
 
 interface RateLimitToastProps {
   notice: RateLimitNotice | null;
   onDismiss: () => void;
   durationMs?: number;
-}
-
-function formatRetryAfter(seconds?: number): string | null {
-  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null;
-
-  if (seconds < 60) {
-    const rounded = Math.ceil(seconds);
-    return `Try again in ${rounded} second${rounded === 1 ? "" : "s"}.`;
-  }
-
-  const minutes = Math.ceil(seconds / 60);
-  return `Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
 export default function RateLimitToast({
@@ -33,6 +20,7 @@ export default function RateLimitToast({
   durationMs = 6000,
 }: RateLimitToastProps) {
   const [visible, setVisible] = useState(false);
+  const { remainingSeconds } = useRateLimitCountdown(notice);
 
   useEffect(() => {
     if (!notice) {
@@ -52,7 +40,9 @@ export default function RateLimitToast({
 
   if (!notice) return null;
 
-  const retryMessage = formatRetryAfter(notice.retryAfter);
+  const retryMessage = remainingSeconds > 0
+    ? `Try again in ${formatCountdown(remainingSeconds)}.`
+    : null;
 
   return (
     <div
