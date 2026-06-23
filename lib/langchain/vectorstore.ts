@@ -2,6 +2,7 @@ import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";
 import { Document } from "@langchain/core/documents";
 import { Prisma } from "@prisma/client"; // UPDATED: needed for Prisma.sql and Prisma.empty
 import { embeddings } from "./embeddings";
+import { rerankDocuments } from "./reranker";
 import { prisma } from "../prisma";
 
 
@@ -14,8 +15,9 @@ export interface RetrievalFilter {
 }
 
 const VECTOR_DISTANCE_THRESHOLD = 0.50;
-const VECTOR_K = 12;
-const RESULT_LIMIT = 8;
+const VECTOR_K = 30;
+const RERANK_CANDIDATE_LIMIT = 30;
+const RERANK_TOP_K = 5;
 const BM25_K1 = 1.2;
 const BM25_B = 0.75;
 const MIN_BM25_TERM_LENGTH = 3;
@@ -317,7 +319,6 @@ export async function getHybridRetriever(
     const key = generateDocKey(doc);
     scored.set(key, { doc, score: (1 - dist) * 0.4 });
   }
-
   for (const doc of bm25Results) {
     const key = generateDocKey(doc);
     const existing = scored.get(key);
@@ -382,24 +383,36 @@ export async function getHybridRetriever(
     }
   }
 
-  // Fetch adjacent chunks for context continuity
-  const topCandidates = Array.from(scored.values())
+  const fusedCandidates = Array.from(scored.values())
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-  const adjacentDocs = await fetchAdjacentChunks(topCandidates, scored);
+    .slice(0, RERANK_CANDIDATE_LIMIT);
+  const fusedDocs = fusedCandidates.map(({ doc }) => doc);
+  const rerankedDocs = await rerankDocuments(query, fusedDocs);
+  const topDocs = (rerankedDocs ?? fusedDocs).slice(0, RERANK_TOP_K);
+
+  const selected = new Map<string, Document>();
+  for (const doc of topDocs) {
+    selected.set(generateDocKey(doc), doc);
+  }
+
+  // Use reranked top chunks as anchors, then add neighbors for continuity.
+  const adjacentDocs = await fetchAdjacentChunks(
+    topDocs.map((doc) => ({ doc, score: 1 })),
+    new Map(
+      Array.from(selected.entries()).map(([key, doc]) => [
+        key,
+        { doc, score: 1 },
+      ]),
+    ),
+  );
   for (const doc of adjacentDocs) {
     const key = generateDocKey(doc);
-    if (!scored.has(key)) {
-      scored.set(key, { doc, score: 0.5 });
+    if (!selected.has(key)) {
+      selected.set(key, doc);
     }
   }
 
-  const resultLimit = deepQuery ? RESULT_LIMIT + 6 : RESULT_LIMIT;
-
-  return Array.from(scored.values())
-    .sort((a, b) => b.score - a.score)
-    .map(({ doc }) => doc)
-    .slice(0, resultLimit);
+  return Array.from(selected.values());
 }
 
 function generateDocKey(doc: Document): string {

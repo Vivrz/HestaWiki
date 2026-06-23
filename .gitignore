@@ -39,6 +39,7 @@ Docs
 .dockerignore
 .github/workflows/ci.yml
 Dockerfile
+!services/reranker/Dockerfile
 README-cybersecurity.md
 README-tech-lead.md
 app/api/admin/departments/\[id\]/route.ts
