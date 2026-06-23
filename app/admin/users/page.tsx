@@ -69,23 +69,12 @@ export default async function UsersPage() {
         title: session.title,
         startedAt: session.createdAt.toISOString(),
         messageCount: session.messages.length,
-        messages: session.messages.map((m) => {
-          let sourcesArray: { title: string; url?: string }[] = [];
-          if (Array.isArray(m.sources)) {
-            sourcesArray = m.sources.map((s: any) => ({
-              title: s.title || s.name || "Unknown Source",
-              url: s.url,
-            }));
-          }
-
-          return {
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            at: m.createdAt.toISOString(),
-            sources: sourcesArray.length > 0 ? sourcesArray : undefined,
-          };
-        }),
+        messages: session.messages.map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          at: m.createdAt.toISOString(),
+        })),
       };
     });
 

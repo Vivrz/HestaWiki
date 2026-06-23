@@ -5,7 +5,6 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   at: string;
-  sources?: { title: string; url?: string }[];
 }
 
 export interface ChatSession {

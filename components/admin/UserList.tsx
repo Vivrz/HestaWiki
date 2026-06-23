@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { HiChevronDown, HiOutlineDocumentText } from "react-icons/hi";
+import { HiChevronDown } from "react-icons/hi";
 import type { AdminUser, UserRole } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,21 +142,6 @@ export default function UserList({ users }: UserListProps) {
                                       }`}
                                     >
                                       <p className="whitespace-pre-wrap">{message.content}</p>
-                                      {message.sources?.length ? (
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                          {message.sources.map((source, index) => (
-                                            <span
-                                              key={`${source.title}-${index}`}
-                                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-                                                isUserMessage ? "bg-white/15 text-white" : "bg-[var(--admin-soft)] text-[var(--admin-muted)]"
-                                              }`}
-                                            >
-                                              <HiOutlineDocumentText className="h-3 w-3" />
-                                              {source.title}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      ) : null}
                                     </div>
                                   </div>
                                 );
