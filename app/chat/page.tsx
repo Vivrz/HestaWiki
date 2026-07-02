@@ -653,12 +653,6 @@ function ChatContent() {
             <h1 className="truncate text-xl font-semibold tracking-normal" style={{ color: "var(--text-primary)" }}>
               Hestawiki
             </h1>
-            <span
-              className="hidden rounded px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] sm:inline-flex"
-              style={{ background: "var(--hover-bg)", color: "var(--text-secondary)" }}
-            >
-              Enterprise
-            </span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <RateLimitCountdownBadge remainingSeconds={rateLimitRemainingSeconds} />
