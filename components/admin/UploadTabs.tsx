@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, DragEvent } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
   const [activeTab, setActiveTab] = useState<SourceTab>("file");
   const [departmentId, setDepartmentId] = useState(initialDept);
   const [url, setUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<ResultState>({ kind: "idle" });
   const fileRef = useRef<HTMLInputElement>(null);
@@ -81,7 +84,6 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
     return () => window.clearInterval(intervalId);
   }, [loadQueue, queueDocs]);
 
-  const selectedFile = fileRef.current?.files?.[0] ?? null;
   const canSubmit = useMemo(() => {
     if (!departmentId || uploading || rateLimitActive) return false;
     if (activeTab === "file") return !!selectedFile;
@@ -90,6 +92,25 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
   const clearInputs = () => {
     setUrl("");
+    setSelectedFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    setSelectedFile(event.target.files?.[0] ?? null);
+    setResult({ kind: "idle" });
+  };
+
+  const handleFileDrop = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingFile(false);
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setResult({ kind: "idle" });
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -101,7 +122,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
 
     try {
       if (activeTab === "file") {
-        const file = fileRef.current?.files?.[0];
+        const file = selectedFile;
         if (!file) {
           setResult({ kind: "error", message: "Please choose a file first." });
           setUploading(false);
@@ -194,7 +215,22 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full rounded-[7px] border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] px-6 py-12 text-center transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)]"
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setIsDraggingFile(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+                setIsDraggingFile(true);
+              }}
+              onDragLeave={() => setIsDraggingFile(false)}
+              onDrop={handleFileDrop}
+              className={`w-full rounded-[7px] border-2 border-dashed px-6 py-12 text-center transition ${
+                isDraggingFile
+                  ? "border-[var(--admin-primary)] bg-[var(--admin-soft)]"
+                  : "border-[var(--admin-border)] bg-[var(--admin-background)] hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)]"
+              }`}
             >
               <div className="mx-auto flex w-fit items-center justify-center rounded-full bg-[var(--admin-lightprimary)] p-2 text-[var(--admin-primary)]">
                 <HiUpload className="h-5 w-5" />
@@ -229,7 +265,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
             type="file"
             accept=".pdf,.txt,.md"
             className="hidden"
-            onChange={() => setResult({ kind: "idle" })}
+            onChange={handleFileSelect}
           />
 
           {selectedFile && activeTab === "file" ? (
