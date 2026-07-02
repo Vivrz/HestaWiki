@@ -45,14 +45,25 @@ export default function MessageBubble({
       .map((segment) => segment.trim())
       .filter(Boolean);
 
+    let orderedListNextStart = 1;
+    let previousWasOrderedList = false;
+
     return paragraphs.map((paragraph, index) => {
       const lines = paragraph.split("\n").map((line) => line.trim()).filter(Boolean);
       const ordered = lines.every((line) => /^\d+\.\s+/.test(line));
       const unordered = lines.every((line) => /^[-*]\s+/.test(line));
 
       if (ordered) {
+        const explicitStart = Number(lines[0]?.match(/^(\d+)\.\s+/)?.[1] ?? "1");
+        const start = previousWasOrderedList && explicitStart <= orderedListNextStart
+          ? orderedListNextStart
+          : explicitStart;
+
+        orderedListNextStart = start + lines.length;
+        previousWasOrderedList = true;
+
         return (
-          <ol key={`ol-${index}`} className="my-2 list-decimal space-y-2 pl-5">
+          <ol key={`ol-${index}`} start={start} className="my-2 list-decimal space-y-2 pl-5">
             {lines.map((line, lineIndex) => (
               <li key={`ol-line-${lineIndex}`} className="text-[14px] leading-relaxed transition-colors duration-200" style={{ color: 'var(--text-primary)' }}>
                 {line.replace(/^\d+\.\s+/, "")}
@@ -61,6 +72,9 @@ export default function MessageBubble({
           </ol>
         );
       }
+
+      previousWasOrderedList = false;
+      orderedListNextStart = 1;
 
       if (unordered) {
         return (
