@@ -1,7 +1,34 @@
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
+import type { Document } from "@langchain/core/documents";
 
-type MessageNode = { role: string; content: string };
+type MessageNode = { role: string; content: string; sources?: unknown };
+
+export type QueryType = "general" | "document_query" | "website_query";
+export type RetrievalConfidence = "strong_match" | "weak_match" | "no_match";
+
+export interface RetrievalDiagnostics {
+  originalQuery: string;
+  standaloneQuery: string;
+  correctedQuery: string;
+  retrievalQuery: string;
+  confidence: RetrievalConfidence;
+  matchScore: number;
+  matchedTerms: string[];
+  docCount: number;
+  sourceType?: RetrievalFilter["sourceType"];
+}
+
+export interface RetrievalEvidence {
+  originalQuery: string;
+  standaloneQuery: string;
+  correctedQuery: string;
+  retrievalQuery: string;
+  docs: Document[];
+  sources: SourceMetadata[];
+  confidence: RetrievalConfidence;
+  diagnostics: RetrievalDiagnostics;
+}
 
 function formatHistory(history: MessageNode[]): BaseMessage[] {
   return history.map(m =>
@@ -66,10 +93,12 @@ CONTENT RULES:
 - If the answer is not in the context (and not about top leadership above), say you don't have that information.
 - DO NOT cite any document name or department in your answer.
 - If summarizing or referring to previous conversation history, state what was discussed confidently without doubting or apologizing.
+- If the user points out a contradiction in your previous answers, compare the current question with previous assistant messages. If a previous assistant message already gave a supported fact, acknowledge that the earlier answer was incomplete and preserve the supported fact. Do not deny information that was already provided unless the current context clearly disproves it.
 - If there are multiple policies or excessive details in the context, filter and show ONLY what is most semantically aligned to the user's specific query. Keep answers concise.
 - NEVER invent process steps, methodologies, or frameworks that are not explicitly stated in the context. If the context lists 5 steps, do not add a 6th. If the context describes a 3-phase approach, do not expand it to 4 phases.
 - NEVER fabricate statistics, counts, or metrics. If the context says "500+ projects", do not say "500+ mobile apps". If the context does not mention a specific number, do not provide one.
 - NEVER fill in gaps with generic industry knowledge or plausible-sounding information. If the context is incomplete, say what you know and stop. Do not pad with invented details.
+- If retrieval confidence is weak, do not present a broad unsupported answer. Mention only the related information found, or ask a concise clarifying question when the user intent is unclear.
 
 ZERO-FABRICATION POLICY FOR HR/POLICY DETAILS (CRITICAL — NEVER VIOLATE):
 - NEVER invent or guess specific numbers for: leave durations (days, weeks, months), pay percentages, salary amounts, probation periods, notice periods, entitlement counts, or eligibility criteria.
@@ -95,6 +124,9 @@ NO RETRIEVAL LANGUAGE — Never use phrases like:
 "According to the context", "Based on the retrieved documents", "The context says", "From the documents I have".
 Speak as if you naturally know this information about Hestabit. Do not hallucinate when the answer is unclear.
 
+RETRIEVAL CONFIDENCE:
+{confidence}
+
 CONTEXT:
 {context}`;
 
@@ -119,6 +151,7 @@ If asked "how are you" or about your day, reply simply as an AI (e.g., "I'm doin
 If asked about top leadership, use the information provided above in a concise and friendly way.
 If the user asks about sensitive/personal information (like a colleague's salary, HR gossip, or individual employee data), playfully and wittily deflect the question and tell them to ask their respected HR instead.
 If asked about previous conversation or chat history, state confidently what was discussed without second-guessing yourself or apologizing.
+If the user points out a contradiction in your previous answers, acknowledge the mismatch and preserve any concrete fact already stated in the conversation instead of denying it.
 NEVER use phrases like "according to the context", "based on the retrieved documents", 
 "the context says", or any variation that reveals the retrieval mechanism. 
 Answer as if you naturally know this information about Hestabit.
@@ -141,7 +174,10 @@ its services, products, industries, about page, careers, blog content,
 success stories, awards, technology offerings, or anything that would be
 found on the company website (hestabit.com). Includes questions like
 "What does Hestabit do?", "Tell me about Hestabit services",
-"Who is Hestabit?", "What technologies does Hestabit work with?", etc.
+"Who is Hestabit?", "What technologies does Hestabit work with?",
+"What do clients say about Hestabit?", "founder comments about Hestabit",
+"CEO testimonial", "Image Converter CEO comment", "Journy founder review",
+"client testimonials", "case studies", and "success stories".
 
 general → greetings, general knowledge, coding help, math,
 small talk, OR questions about sensitive/personal employee information (like a colleague's salary, gossips, or individual employee data) that should not be in the policy documents.
@@ -252,6 +288,142 @@ function getAbbreviationMatches(query: string): Array<{ key: string; expansion: 
 
 export function containsKnownAbbreviation(query: string): boolean {
   return getAbbreviationMatches(query).length > 0;
+}
+
+const STRONG_DOCUMENT_QUERY_PATTERNS: RegExp[] = [
+  /\bwfh\b|work\s*from\s*home/i,
+  /\b(el|cl|sl|lwp|ml)\b/i,
+  /\bcomp\s*off\b/i,
+  /\bzoho\b/i,
+  /\btask\s*tracker\b/i,
+  /\battendance\b/i,
+  /\bstand\s*up\b|\bstandup\b/i,
+  /\bleave\s*(policy|management|balance|request|approval)?\b/i,
+  /\b(adoption|adopt|adopted|adopting|adoptive)\b/i,
+  /\b(maternity|commissioning\s+mother|adopting\s+mother|miscarriage|nursing\s+breaks?)\b/i,
+  /\b(eod|end\s*of\s*day)\s*report\b/i,
+  /\b(compliance|consequences|disciplinary)\b/i,
+];
+
+const TESTIMONIAL_QUERY_PATTERNS: RegExp[] = [
+  /\btestimonial(s)?\b/i,
+  /\breview(s)?\b/i,
+  /\bcomment(s)?\b/i,
+  /\bsuccess stor(y|ies)\b/i,
+  /\bcase stud(y|ies)\b/i,
+  /\bfounder(s)?\b/i,
+  /\bceo\b/i,
+  /\bclient(s)?\b/i,
+  /\bimage converter\b/i,
+  /\bjourny\b/i,
+];
+
+const REFUSAL_PATTERNS: RegExp[] = [
+  /\bi don't have (any|that|this)?\s*information\b/i,
+  /\bi do not have (any|that|this)?\s*information\b/i,
+  /\bnot available\b/i,
+  /\bi couldn't find\b/i,
+];
+
+const CONTRADICTION_PATTERNS: RegExp[] = [
+  /\bpreviously\b/i,
+  /\bearlier\b/i,
+  /\blast time\b/i,
+  /\byou (said|mentioned|told)\b/i,
+  /\bcontradict/i,
+  /\binconsistent/i,
+  /\bbut you\b/i,
+];
+
+const QUERY_STOP_WORDS = new Set([
+  "who", "what", "where", "when", "why", "how", "is", "are", "was", "were",
+  "the", "a", "an", "at", "in", "on", "for", "of", "to", "from", "with",
+  "about", "tell", "me", "you", "your", "we", "they", "them", "their",
+  "hestabit", "give", "show", "know", "please", "kindly", "details",
+  "detail", "information", "info", "regarding", "does", "has", "have",
+  "say", "says", "said", "thing", "anything", "other", "companies",
+]);
+
+export function shouldForceDocumentQuery(query: string): boolean {
+  return STRONG_DOCUMENT_QUERY_PATTERNS.some((pattern) => pattern.test(query));
+}
+
+function isLikelyFollowUp(query: string): boolean {
+  return /^(no|yes|yeah|yep|nah|like|that|this|it|he|she|they|their|his|her)\b/i.test(query.trim());
+}
+
+function isTestimonialQuery(query: string): boolean {
+  return TESTIMONIAL_QUERY_PATTERNS.some((pattern) => pattern.test(query));
+}
+
+function isContradictionChallenge(query: string): boolean {
+  return CONTRADICTION_PATTERNS.some((pattern) => pattern.test(query));
+}
+
+function isRefusalMessage(content: string): boolean {
+  return REFUSAL_PATTERNS.some((pattern) => pattern.test(content));
+}
+
+function getLastUserMessage(history: MessageNode[]): string {
+  return [...history].reverse().find((message) => message.role === "user")?.content ?? "";
+}
+
+function getLastInformativeAssistantMessage(history: MessageNode[]): string {
+  return [...history]
+    .reverse()
+    .find((message) => message.role === "assistant" && !isRefusalMessage(message.content))
+    ?.content
+    .trim() ?? "";
+}
+
+function normalizeQueryText(query: string): string {
+  return query.replace(/\s+/g, " ").trim();
+}
+
+function uniqueQueryParts(parts: string[]): string {
+  const seen = new Set<string>();
+  return parts
+    .flatMap((part) => normalizeQueryText(part).split(" "))
+    .filter((word) => {
+      const key = word.toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join(" ")
+    .trim();
+}
+
+export function buildStandaloneQuery(query: string, history: MessageNode[] = []): string {
+  const current = normalizeQueryText(query);
+  const lastUser = getLastUserMessage(history);
+  const parts = [current];
+
+  if (isLikelyFollowUp(current) && lastUser) {
+    parts.unshift(lastUser);
+  }
+
+  if (isTestimonialQuery(current) || isTestimonialQuery(lastUser)) {
+    parts.push("Hestabit client founder CEO testimonial comment review success story case study");
+  }
+
+  return uniqueQueryParts(parts) || current;
+}
+
+export function getContradictionRepairResponse(
+  query: string,
+  history: MessageNode[] = [],
+): string | null {
+  if (!isContradictionChallenge(query)) return null;
+
+  const informativeAnswer = getLastInformativeAssistantMessage(history);
+  const hadEarlierRefusal = history.some(
+    (message) => message.role === "assistant" && isRefusalMessage(message.content),
+  );
+
+  if (!informativeAnswer || !hadEarlierRefusal) return null;
+
+  return `You're right. The earlier response was incomplete. The correct information from our conversation is: ${informativeAnswer}`;
 }
 
 // Expand abbreviations to improve semantic search
@@ -451,44 +623,168 @@ export async function* streamGeneralAnswer(
   }
 }
 
-export async function* streamAnswer(
+function extractConfidenceTerms(query: string): string[] {
+  return Array.from(
+    new Set(
+      query
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 2 && !QUERY_STOP_WORDS.has(word)),
+    ),
+  );
+}
+
+function getDocumentSearchText(docs: Document[]): string {
+  return docs
+    .map((doc) => {
+      const meta = doc.metadata as Record<string, unknown>;
+      return [
+        doc.pageContent,
+        meta.page_title,
+        meta.section,
+        meta.source_url,
+        meta.docName,
+        meta.department,
+        meta.testimonial_person,
+        meta.testimonial_role,
+        meta.testimonial_company,
+        meta.content_type,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    })
+    .join("\n")
+    .toLowerCase();
+}
+
+function scoreEvidenceConfidence(query: string, docs: Document[]): {
+  confidence: RetrievalConfidence;
+  matchScore: number;
+  matchedTerms: string[];
+} {
+  if (docs.length === 0) {
+    return { confidence: "no_match", matchScore: 0, matchedTerms: [] };
+  }
+
+  const terms = extractConfidenceTerms(query);
+  const searchable = getDocumentSearchText(docs);
+  const matchedTerms = terms.filter((term) => searchable.includes(term));
+  let matchScore = terms.length > 0 ? matchedTerms.length / terms.length : 0;
+
+  const entityTerms = [
+    "image converter",
+    "paul asiimwe",
+    "journy",
+    "asit gupta",
+  ];
+  const hasExactEntityMatch = entityTerms.some(
+    (term) => query.toLowerCase().includes(term) && searchable.includes(term),
+  );
+
+  const hasTestimonialEvidence =
+    isTestimonialQuery(query) &&
+    /\b(testimonial|founder|ceo|client|review|comment|success story|image converter|journy)\b/i.test(searchable);
+
+  if (hasExactEntityMatch) matchScore = Math.max(matchScore, 0.8);
+  if (hasTestimonialEvidence) matchScore = Math.min(1, matchScore + 0.2);
+
+  if (matchScore >= 0.35 || hasExactEntityMatch) {
+    return { confidence: "strong_match", matchScore, matchedTerms };
+  }
+
+  return {
+    confidence: docs.length > 0 ? "weak_match" : "no_match",
+    matchScore,
+    matchedTerms,
+  };
+}
+
+function buildSourcesFromDocs(docs: Document[]): SourceMetadata[] {
+  const seen = new Set<string>();
+  const sources: SourceMetadata[] = [];
+
+  for (const doc of docs) {
+    const meta = doc.metadata as Record<string, unknown>;
+    const key = meta.source === "website"
+      ? (meta.source_url as string) ?? doc.pageContent.slice(0, 100)
+      : (meta.docId as string) ?? doc.pageContent.slice(0, 100);
+    if (!seen.has(key)) {
+      seen.add(key);
+      sources.push(doc.metadata as SourceMetadata);
+    }
+  }
+
+  return sources;
+}
+
+export async function retrieveEvidence(
   query: string,
   opts: RetrievalFilter = {},
-  history: MessageNode[] = []
-): AsyncGenerator<string, void, unknown> {
-  // Correct typos before retrieval for better matching
-  const correctedQuery = await correctQueryTypos(query);
+  history: MessageNode[] = [],
+): Promise<RetrievalEvidence> {
+  const originalQuery = normalizeQueryText(query);
+  const standaloneQuery = buildStandaloneQuery(originalQuery, history);
+  const correctedQuery = await correctQueryTypos(standaloneQuery);
+  const retrievalQuery = expandAbbreviations(correctedQuery);
 
   // Use hybrid retriever with abbreviation-aware fallback.
-  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(correctedQuery, opts);
+  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(retrievalQuery, opts);
   const hasInternalDocs = hybridDocs.some(
     (d) => String((d.metadata as Record<string, unknown>)?.source ?? "") === "document"
   );
 
   // Fallback for acronym-heavy queries (e.g. WFH), where retrieval can miss.
-  if ((!hasInternalDocs) && /\bwfh\b|work\s*from\s*home/i.test(query)) {
+  if ((!hasInternalDocs) && /\bwfh\b|work\s*from\s*home/i.test(retrievalQuery)) {
     hybridDocs = await getHybridRetriever(
-      sanitizeForRetrieval(`${query} remote work policy work from home`),
+      sanitizeForRetrieval(`${retrievalQuery} remote work policy work from home`),
       opts,
     );
   }
 
   // Generic fallback: strip retrieval-noisy punctuation and retry once.
   if (hybridDocs.length === 0) {
-    const normalizedQuery = query.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
-    if (normalizedQuery && normalizedQuery !== query) {
+    const normalizedQuery = retrievalQuery.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
+    if (normalizedQuery && normalizedQuery !== retrievalQuery) {
       hybridDocs = await getHybridRetriever(sanitizeForRetrieval(normalizedQuery), opts);
     }
   }
 
-  // Early refusal: if after all retrieval attempts we still have no context,
-  // return immediately instead of sending empty context to the LLM (which
-  // causes it to struggle and timeout trying to be helpful).
-  if (hybridDocs.length === 0) {
+  const scored = scoreEvidenceConfidence(retrievalQuery, hybridDocs);
+  const sources = buildSourcesFromDocs(hybridDocs);
+  const diagnostics: RetrievalDiagnostics = {
+    originalQuery,
+    standaloneQuery,
+    correctedQuery,
+    retrievalQuery,
+    confidence: scored.confidence,
+    matchScore: Number(scored.matchScore.toFixed(3)),
+    matchedTerms: scored.matchedTerms,
+    docCount: hybridDocs.length,
+    sourceType: opts.sourceType,
+  };
+
+  return {
+    originalQuery,
+    standaloneQuery,
+    correctedQuery,
+    retrievalQuery,
+    docs: hybridDocs,
+    sources,
+    confidence: scored.confidence,
+    diagnostics,
+  };
+}
+
+export async function* streamAnswerFromEvidence(
+  query: string,
+  evidence: RetrievalEvidence,
+  history: MessageNode[] = [],
+): AsyncGenerator<string, void, unknown> {
+  if (evidence.confidence === "no_match" || evidence.docs.length === 0) {
     yield "I don't have that information.";
     return;
   }
-
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", SYSTEM_PROMPT],
@@ -499,9 +795,14 @@ export async function* streamAnswer(
   // Create a simple document-based chain without retriever
   // We'll manually pass the hybridDocs
   try {
+    const input =
+      evidence.standaloneQuery && evidence.standaloneQuery !== normalizeQueryText(query)
+        ? `${query}\n\nResolved standalone question: ${evidence.standaloneQuery}`
+        : query;
     const formatted = await prompt.formatMessages({
-      input: query,
-      context: hybridDocs.map((doc) => doc.pageContent).join("\n\n"),
+      input,
+      context: evidence.docs.map((doc) => doc.pageContent).join("\n\n"),
+      confidence: evidence.confidence,
       chat_history: formatHistory(history),
     });
     const stream = await getLlm().stream(formatted);
@@ -519,6 +820,15 @@ export async function* streamAnswer(
   }
 }
 
+export async function* streamAnswer(
+  query: string,
+  opts: RetrievalFilter = {},
+  history: MessageNode[] = []
+): AsyncGenerator<string, void, unknown> {
+  const evidence = await retrieveEvidence(query, opts, history);
+  yield* streamAnswerFromEvidence(query, evidence, history);
+}
+
 export interface SourceMetadata {
   docId: string;
   docName: string;
@@ -533,40 +843,6 @@ export async function getRelevantSources(
   query: string,
   opts: RetrievalFilter = {}
 ): Promise<SourceMetadata[]> {
-  const correctedQuery = await correctQueryTypos(query);
-  let hybridDocs = await getHybridRetrieverWithAbbreviationFallback(correctedQuery, opts);
-  const hasInternalDocs = hybridDocs.some(
-    (d) => String((d.metadata as Record<string, unknown>)?.source ?? "") === "document"
-  );
-
-  if ((!hasInternalDocs) && /\bwfh\b|work\s*from\s*home/i.test(correctedQuery)) {
-    hybridDocs = await getHybridRetriever(
-      sanitizeForRetrieval(`${correctedQuery} remote work policy work from home`),
-      opts,
-    );
-  }
-
-  if (hybridDocs.length === 0) {
-    const normalizedQuery = correctedQuery.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
-    if (normalizedQuery && normalizedQuery !== correctedQuery) {
-      hybridDocs = await getHybridRetriever(sanitizeForRetrieval(normalizedQuery), opts);
-    }
-  }
-
-  // Deduplicate — use source_url for website chunks, docId for HR docs
-  const seen = new Set<string>();
-  const sources: SourceMetadata[] = [];
-
-  for (const doc of hybridDocs) {
-    const meta = doc.metadata as Record<string, unknown>;
-    const key = meta.source === "website"
-      ? (meta.source_url as string) ?? doc.pageContent.slice(0, 100)
-      : (meta.docId as string) ?? doc.pageContent.slice(0, 100);
-    if (!seen.has(key)) {
-      seen.add(key);
-      sources.push(doc.metadata as SourceMetadata);
-    }
-  }
-
-  return sources;
+  const evidence = await retrieveEvidence(query, opts);
+  return evidence.sources;
 }

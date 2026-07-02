@@ -1,13 +1,14 @@
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  streamAnswer,
-  getRelevantSources,
   classifyQuery,
   streamGeneralAnswer,
-  expandAbbreviations,
   getClarificationRequired,
-  containsKnownAbbreviation,
+  retrieveEvidence,
+  streamAnswerFromEvidence,
+  buildStandaloneQuery,
+  getContradictionRepairResponse,
+  shouldForceDocumentQuery,
 } from "@/lib/langchain/retrieval";
 import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
@@ -137,25 +138,37 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        // Step 1: Expand abbreviations for better semantic search
-        const expandedQuery = expandAbbreviations(message);
+        const contradictionRepair = getContradictionRepairResponse(message, previousMessages);
+        if (contradictionRepair) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ queryType: "general" })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: contradictionRepair })}\n\n`));
 
-        // Known abbreviations and policy keywords always route to document retrieval.
-        const forceDocumentQuery =
-          /\bwfh\b|work\s*from\s*home/i.test(message) ||
-          containsKnownAbbreviation(message) ||
-          /\bzoho\b/i.test(message) ||
-          /\btask\s*tracker\b/i.test(message) ||
-          /\battendance\b/i.test(message) ||
-          /\bstand\s*up\b|\bstandup\b/i.test(message) ||
-          /\bleave\s*(policy|management|balance|request|approval)?\b/i.test(message) ||
-          /\b(eod|end\s*of\s*day)\s*report\b/i.test(message) ||
-          /\b(compliance|consequences|disciplinary)\b/i.test(message);
+          const sources: Prisma.InputJsonValue = [];
+          await prisma.chatMessage.create({
+            data: {
+              sessionId,
+              role: "assistant",
+              content: contradictionRepair,
+              sources,
+            },
+          });
 
-        // Step 2: Classify the expanded query (Passing history for anti-trickery)
+          const doneEvent = `data: ${JSON.stringify({ done: true, sources })}\n\n`;
+          controller.enqueue(encoder.encode(doneEvent));
+          return;
+        }
+
+        // Step 1: Rewrite vague follow-ups into standalone search intent.
+        const standaloneQuery = buildStandaloneQuery(message, previousMessages);
+
+        // Strong policy keywords always route to document retrieval. Ambiguous
+        // business terms like CEO, HR, PM, CTO, and DevOps are left to the classifier.
+        const forceDocumentQuery = shouldForceDocumentQuery(standaloneQuery);
+
+        // Step 2: Classify the standalone query (Passing history for anti-trickery)
         const queryType = forceDocumentQuery
           ? "document_query"
-          : await classifyQuery(expandedQuery, previousMessages);
+          : await classifyQuery(standaloneQuery, previousMessages);
         const queryTypeEvent = `data: ${JSON.stringify({ queryType })}\n\n`;
         controller.enqueue(encoder.encode(queryTypeEvent));
 
@@ -178,9 +191,11 @@ export async function POST(req: NextRequest) {
               ? { sourceType: "website" as const }
               : { sourceType: "document" as const };
 
-          // For document_query and website_query, use expanded query for better retrieval accuracy
-          sources = (await getRelevantSources(expandedQuery, retrievalOpts)) as unknown as Prisma.InputJsonValue;
-          for await (const token of streamAnswer(expandedQuery, retrievalOpts, previousMessages)) {
+          const evidence = await retrieveEvidence(standaloneQuery, retrievalOpts, previousMessages);
+          sources = evidence.sources as unknown as Prisma.InputJsonValue;
+          console.info("Chat retrieval diagnostics", evidence.diagnostics);
+
+          for await (const token of streamAnswerFromEvidence(message, evidence, previousMessages)) {
             fullAnswer += token;
             const event = `data: ${JSON.stringify({ token })}\n\n`;
             controller.enqueue(encoder.encode(event));

@@ -76,6 +76,21 @@ const NOISE_PATTERNS: RegExp[] = [
   /\n{3,}/g,
 ];
 
+const KNOWN_TESTIMONIALS = [
+  {
+    company: "Image Converter",
+    person: "Paul Asiimwe",
+    role: "Founder",
+    patterns: [/image converter/i, /paul asiimwe/i],
+  },
+  {
+    company: "Journy",
+    person: "Asit Gupta",
+    role: "Founder",
+    patterns: [/journy/i, /asit gupta/i],
+  },
+];
+
 // ─── ADD YOUR PRIORITY PAGES HERE ─────────────────────────────────
 const PRIORITY_PAGES: string[] = [
   "https://www.hestabit.com/digital-transformation/predictive-analytics",
@@ -114,6 +129,21 @@ function cleanMarkdown(raw: string): string {
     );
   }
   return cleaned.replace(/ {3,}/g, "  ").trim();
+}
+
+function getTestimonialMetadata(text: string): Record<string, string> {
+  const testimonial = KNOWN_TESTIMONIALS.find((item) =>
+    item.patterns.some((pattern) => pattern.test(text)),
+  );
+
+  if (!testimonial) return {};
+
+  return {
+    content_type: "testimonial",
+    testimonial_person: testimonial.person,
+    testimonial_role: testimonial.role,
+    testimonial_company: testimonial.company,
+  };
 }
 
 function isExcludedUrl(url: string): boolean {
@@ -225,6 +255,7 @@ async function processPage({
       docId:        document.id,
       departmentId: document.departmentId,
       isLatest:     true,
+      ...getTestimonialMetadata(chunk.pageContent),
     },
   }));
 
