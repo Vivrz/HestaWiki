@@ -117,7 +117,8 @@ const PRIORITY_PAGES: string[] = [
   "https://www.hestabit.com/edtech",
   "https://www.hestabit.com/defence-tech",
   "https://www.hestabit.com/industries/manufacturing",
-  "https://www.hestabit.com/awards"
+  "https://www.hestabit.com/awards",
+  "https://www.hestabit.com/our-team"
 ];
 
 function cleanMarkdown(raw: string): string {
@@ -168,6 +169,7 @@ export function getSectionFromUrl(url: string): string {
   try {
     const path = new URL(url).pathname.toLowerCase();
     if (path === "/" || path === "")                      return "Home";
+    if (path.includes("our-team"))                        return "Our Team";
     if (path.includes("about"))                          return "About";
     if (path.includes("service"))                        return "Services";
     if (path.includes("staff-augment"))                  return "Staff Augmentation";
