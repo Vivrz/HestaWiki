@@ -11,7 +11,6 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -69,21 +68,27 @@ function applyAdminTheme(theme: AdminTheme) {
   }
 }
 
+function getStoredAdminTheme(): AdminTheme {
+  if (typeof window === "undefined") return "light";
+  try {
+    return localStorage.getItem("admin-theme") === "dark" ? "dark" : "light";
+  } catch {
+    return "light";
+  }
+}
+
 function AdminThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<AdminTheme>("light");
-  const loadedStoredTheme = useRef(false);
 
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("admin-theme") === "dark" ? "dark" : "light";
-    loadedStoredTheme.current = true;
-    setThemeState(storedTheme);
+  useLayoutEffect(() => {
+    setThemeState(getStoredAdminTheme());
   }, []);
 
   useLayoutEffect(() => {
     applyAdminTheme(theme);
-    if (loadedStoredTheme.current) {
+    try {
       localStorage.setItem("admin-theme", theme);
-    }
+    } catch {}
   }, [theme]);
 
   const value = useMemo<AdminThemeContextValue>(() => ({
