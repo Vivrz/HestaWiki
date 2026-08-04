@@ -44,6 +44,13 @@ interface ChatSession {
 const PINNED_CHATS_STORAGE_KEY = "chat:pinned-session-ids";
 const CHAT_RATE_LIMIT_STORAGE_KEY = "rate-limit:chat";
 
+const STARTER_PROMPTS = [
+  { icon: "solar:document-text-linear", title: "Summarize a policy", prompt: "Summarize the company's leave policy in a few bullet points." },
+  { icon: "solar:question-circle-linear", title: "Answer a question", prompt: "What are the steps to submit an expense reimbursement?" },
+  { icon: "solar:users-group-rounded-linear", title: "Find a team contact", prompt: "Who should I contact about IT onboarding issues?" },
+  { icon: "solar:shield-user-linear", title: "Understand compliance", prompt: "What are the key compliance guidelines for handling customer data?" },
+];
+
 function useTypewriterText(text: string, speedMs: number, resetKey: string | null) {
   const [displayText, setDisplayText] = useState("");
 
@@ -151,6 +158,8 @@ function ChatContent() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+
+  const activeSessionTitle = sessions.find((session) => session.id === activeSessionId)?.title;
 
   const handleAuthExpired = useCallback(() => {
     if (authRedirectTriggered.current) return;
@@ -398,8 +407,8 @@ function ChatContent() {
     return { content: accumulated, sources: finalSources };
   };
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  const handleSend = async (overrideMessage?: string) => {
+    const trimmed = (overrideMessage ?? input).trim();
     if (!trimmed || streaming || rateLimitActive) return;
 
     let sessionId = activeSessionId;
@@ -471,12 +480,9 @@ function ChatContent() {
     }
   };
 
-  const handleSuggestionClick = (value: string) => {
-    setInput(value);
-    const textarea = document.querySelector("textarea");
-    if (textarea instanceof HTMLTextAreaElement) {
-      textarea.focus();
-    }
+  const handleStarterPrompt = (prompt: string) => {
+    setInput(prompt);
+    handleSend(prompt);
   };
 
   return (
@@ -650,11 +656,34 @@ function ChatContent() {
             >
               <HiMenuAlt2 className="h-5 w-5" />
             </button>
-            <h1 className="truncate text-xl font-semibold tracking-normal" style={{ color: "var(--text-primary)" }}>
-              Hestawiki
-            </h1>
+            <span
+              className="hidden h-6 w-6 items-center justify-center rounded-lg sm:flex"
+              style={{ background: "var(--accent)" }}
+              aria-hidden="true"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M12 22c0-7.5 0-10-5-10 5-2.5 5-5 5-10 0 5 0 7.5 5 10-5 2.5-5 5-5 10z" fill="white" />
+              </svg>
+            </span>
+            <div className="flex min-w-0 items-center gap-3">
+              <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg" style={{ color: "var(--text-primary)" }}>
+                {activeSessionTitle || "Hestawiki"}
+              </h1>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={!canCreateNewChat || streaming}
+              className="hidden h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
+              style={{ color: "var(--text-primary)", borderColor: "var(--border-color)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              New chat
+            </button>
             <RateLimitCountdownBadge remainingSeconds={rateLimitRemainingSeconds} />
             <button
               onClick={toggleTheme}
@@ -708,23 +737,62 @@ function ChatContent() {
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-8 sm:px-8 lg:px-12">
             <div className={`mx-auto flex min-h-full w-full max-w-[920px] flex-col ${messages.length === 0 ? "justify-center" : "justify-start"}`}>
               {messages.length === 0 ? (
-                <div className="mx-auto flex w-full max-w-3xl flex-col items-center pb-16">
-                  <div className="mb-7 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path opacity="0.3" d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" fill="url(#ai_sparkle_glow)" />
-                      <path d="M12 22C12 22 12 14.5 7 12C12 9.5 12 2 12 2C12 2 12 9.5 17 12C12 14.5 12 22 12 22Z" fill="var(--accent)"/>
-                      <path d="M19.5 10C19.5 10 19.5 7.5 17.5 6.5C19.5 5.5 19.5 3 19.5 3C19.5 3 19.5 5.5 21.5 6.5C19.5 7.5 19.5 10 19.5 10Z" fill="var(--accent)"/>
-                      <path d="M5.5 19C5.5 19 5.5 17 4 16C5.5 15 5.5 13 5.5 13C5.5 13 5.5 15 7 16C5.5 17 5.5 19 5.5 19Z" fill="var(--accent)"/>
-                      <defs>
-                        <radialGradient id="ai_sparkle_glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 12) rotate(90) scale(9)">
-                          <stop stopColor="var(--accent)"/>
-                          <stop offset="1" stopColor="var(--accent)" stopOpacity="0"/>
-                        </radialGradient>
-                      </defs>
-                    </svg>
-                    <h2 className="text-center text-2xl font-normal tracking-normal sm:text-[32px]" style={{ color: "var(--text-primary)" }}>
+                <div className="mx-auto flex w-full max-w-3xl flex-col items-center pb-10">
+                  <div className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+                    <span
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
+                      style={{ background: "var(--accent)" }}
+                      aria-hidden="true"
+                    >
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C12 22 12 14.5 7 12C12 9.5 12 2 12 2C12 2 12 9.5 17 12C12 14.5 12 22 12 22Z" fill="white"/>
+                        <path d="M19.5 10C19.5 10 19.5 7.5 17.5 6.5C19.5 5.5 19.5 3 19.5 3C19.5 3 19.5 5.5 21.5 6.5C19.5 7.5 19.5 10 19.5 10Z" fill="white"/>
+                        <path d="M5.5 19C5.5 19 5.5 17 4 16C5.5 15 5.5 13 5.5 13C5.5 13 5.5 15 7 16C5.5 17 5.5 19 5.5 19Z" fill="white"/>
+                      </svg>
+                    </span>
+                    <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-[30px]" style={{ color: "var(--text-primary)" }}>
                       {typedGreeting}
                     </h2>
+                  </div>
+                  <p className="mb-8 -mt-2 max-w-md text-center text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    Your AI assistant for company knowledge. Ask questions, summarize documents, or get answers backed by your internal sources.
+                  </p>
+                  <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+                    {STARTER_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt.title}
+                        type="button"
+                        onClick={() => handleStarterPrompt(prompt.prompt)}
+                        className="group flex items-start gap-3 rounded-2xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
+                        style={{
+                          background: "var(--input-bg)",
+                          borderColor: "var(--border-color)",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border-color)")}
+                      >
+                        <span
+                          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                          style={{ background: "var(--hover-bg)", color: "var(--accent)" }}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            {prompt.icon === "solar:document-text-linear" ? (
+                              <><path d="M7 3h6l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M14 3v4h4M9 13h6M9 17h4" /></>
+                            ) : prompt.icon === "solar:question-circle-linear" ? (
+                              <><circle cx="12" cy="12" r="9" /><path d="M9.3 9a2.6 2.6 0 0 1 5.1.6c0 1.6-2.4 2.1-2.4 3.4" /><circle cx="12" cy="17" r="0.6" fill="currentColor" /></>
+                            ) : prompt.icon === "solar:users-group-rounded-linear" ? (
+                              <><path d="M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM20 19v-1a4 4 0 0 0-3-3.9M15 3.1a4 4 0 0 1 0 7.8" /></>
+                            ) : (
+                              <path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3zM19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z" />
+                            )}
+                          </svg>
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{prompt.title}</span>
+                          <span className="mt-1 block text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{prompt.prompt}</span>
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : (
