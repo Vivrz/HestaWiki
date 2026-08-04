@@ -596,7 +596,7 @@ function ActivityPerformanceTable({
           <Table>
             <TableHeader>
               <TableRow className="border-[var(--admin-border)]">
-                <TableHead className="text-sm font-semibold text-[var(--admin-heading)]">Id</TableHead>
+                <TableHead className="text-sm font-semibold text-[var(--admin-heading)]">#</TableHead>
                 <TableHead className="text-sm font-semibold text-[var(--admin-heading)]">Area</TableHead>
                 <TableHead className="text-sm font-semibold text-[var(--admin-heading)]">Event</TableHead>
                 <TableHead className="text-sm font-semibold text-[var(--admin-heading)]">Status</TableHead>
