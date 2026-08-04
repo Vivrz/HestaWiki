@@ -50,3 +50,4 @@ hestabit-chatbot.postman_collection.json
 issues.md
 prisma.config.ts
 scripts/docker-smoke.sh
+./scripts
