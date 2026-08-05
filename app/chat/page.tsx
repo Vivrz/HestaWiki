@@ -42,6 +42,7 @@ interface ChatSession {
 }
 
 const PINNED_CHATS_STORAGE_KEY = "chat:pinned-session-ids";
+const CHAT_AUTO_SCROLL_STORAGE_KEY = "chat:auto-scroll";
 const CHAT_RATE_LIMIT_STORAGE_KEY = "rate-limit:chat";
 
 const STARTER_PROMPTS = [
@@ -94,6 +95,7 @@ function ChatContent() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [pinnedSessionIds, setPinnedSessionIds] = useState<string[]>([]);
   const [isDark, setIsDark] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const [greeting, setGreeting] = useState("Welcome back,");
   const authRedirectTriggered = useRef(false);
   const [renameModal, setRenameModal] = useState<{
@@ -144,6 +146,19 @@ function ChatContent() {
     localStorage.setItem(PINNED_CHATS_STORAGE_KEY, JSON.stringify(pinnedSessionIds));
   }, [pinnedSessionIds]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CHAT_AUTO_SCROLL_STORAGE_KEY);
+      if (raw !== null) setAutoScroll(raw === "true");
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CHAT_AUTO_SCROLL_STORAGE_KEY, String(autoScroll));
+  }, [autoScroll]);
+
   const toggleTheme = () => {
     if (isDark) {
       document.documentElement.classList.remove("chat-dark");
@@ -172,8 +187,8 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, streamingContent]);
+    if (autoScroll) scrollToBottom();
+  }, [messages, streamingContent, autoScroll]);
 
   const fetchSessions = useCallback(async () => {
     const res = await fetch("/api/chat/sessions");
@@ -618,6 +633,10 @@ function ChatContent() {
             onRenameSession={handleRenameSession}
             onTogglePinSession={handleTogglePinSession}
             onDeleteSession={handleDeleteSession}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+            autoScroll={autoScroll}
+            onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
           />
         </div>
       </div>
@@ -640,6 +659,10 @@ function ChatContent() {
           onRenameSession={handleRenameSession}
           onTogglePinSession={handleTogglePinSession}
           onDeleteSession={handleDeleteSession}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
         />
       </div>
 

@@ -9,6 +9,7 @@ import {
   HiOutlineTrash,
   HiPlus,
 } from "react-icons/hi";
+import ChatSettingsModal from "./ChatSettingsModal";
 
 interface ChatSession {
   id: string;
@@ -27,6 +28,10 @@ interface ChatSidebarProps {
   onRenameSession: (id: string, currentTitle: string) => void;
   onTogglePinSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
+  autoScroll: boolean;
+  onToggleAutoScroll: () => void;
 }
 
 function formatSessionDate(createdAt: string) {
@@ -73,8 +78,13 @@ export default function ChatSidebar({
   onRenameSession,
   onTogglePinSession,
   onDeleteSession,
+  isDark,
+  onToggleTheme,
+  autoScroll,
+  onToggleAutoScroll,
 }: ChatSidebarProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const sessionGroups = useMemo(() => groupSessionsByDate(sessions), [sessions]);
 
   useEffect(() => {
@@ -270,6 +280,7 @@ export default function ChatSidebar({
       <div className="border-t p-4" style={{ borderColor: "var(--border-color)" }}>
         <button
           type="button"
+          onClick={() => setShowSettings(true)}
           className="flex h-11 w-full items-center gap-3 rounded-lg px-2 text-sm transition-colors"
           style={{ color: "var(--text-primary)" }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover-bg)")}
@@ -279,6 +290,14 @@ export default function ChatSidebar({
           <span>Settings</span>
         </button>
       </div>
+      <ChatSettingsModal
+        open={showSettings}
+        isDark={isDark}
+        autoScroll={autoScroll}
+        onToggleTheme={onToggleTheme}
+        onToggleAutoScroll={onToggleAutoScroll}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }
