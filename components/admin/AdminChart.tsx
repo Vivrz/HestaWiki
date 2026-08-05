@@ -28,7 +28,7 @@ export default function AdminChart({ type, height, series, options }: AdminChart
       ...options,
       chart: {
         ...chartOptions,
-        animations: { enabled: false },
+        animations: chartOptions.animations ?? { enabled: false },
       },
     };
   }, [options]);

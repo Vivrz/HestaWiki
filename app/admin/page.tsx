@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import AdminChart from "@/components/admin/AdminChart";
 import AnimatedNumber from "@/components/admin/AnimatedNumber";
 import DashboardHeroCard from "@/components/admin/DashboardHeroCard";
+import DocumentHealthCard from "@/components/admin/DocumentHealthCard";
+import SourcesByTypeCard from "@/components/admin/SourcesByTypeCard";
 import { AdminCard, AdminCardHeader, ChartCard, TableCard } from "@/components/admin/AdminUI";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,7 @@ async function getDashboardData() {
     inactiveUsers7d,
     todaySessions,
     departments,
+    sourceTypes,
     lastUploads,
     recentSessions,
     recentTeams,
@@ -101,6 +104,11 @@ async function getDashboardData() {
         _count: { select: { documents: { where: { isLatest: true } } } },
       },
       orderBy: { name: "asc" },
+    }),
+    prisma.document.groupBy({
+      by: ["type"],
+      where: { isLatest: true },
+      _count: { _all: true },
     }),
     prisma.document.findMany({
       take: 6,
@@ -225,6 +233,7 @@ async function getDashboardData() {
     inactiveUsers7d,
     todaySessions,
     departments,
+    sourceTypes,
     lastUploads,
     teamsWithNoFiles,
     activityLogs,
@@ -246,16 +255,21 @@ function SalesOverviewCard({
       fontFamily: "inherit",
       foreColor: "var(--admin-chart-axis)",
       stacked: true,
-      offsetX: -12,
+      animations: {
+        enabled: true,
+        speed: 400,
+        animateGradually: { enabled: true, delay: 80 },
+        dynamicAnimation: { enabled: true, speed: 350 },
+      },
     },
     colors: ["var(--admin-chart-primary)", "var(--admin-chart-secondary)"],
     plotOptions: {
       bar: {
         horizontal: false,
         columnWidth: "22%",
-        borderRadius: 6,
+        borderRadius: 5,
         borderRadiusApplication: "end",
-        borderRadiusWhenStacked: "all",
+        borderRadiusWhenStacked: "last",
       },
     },
     dataLabels: { enabled: false },
@@ -383,67 +397,6 @@ function DashboardKpiStrip({
   );
 }
 
-function DocumentHealthCard({
-  readyDocuments,
-  processingDocuments,
-  failedDocuments,
-}: {
-  readyDocuments: number;
-  processingDocuments: number;
-  failedDocuments: number;
-}) {
-  const total = readyDocuments + processingDocuments + failedDocuments;
-  const readyPercent = total > 0 ? Math.round((readyDocuments / total) * 100) : 0;
-  const options = {
-    chart: { type: "donut", fontFamily: "inherit", foreColor: "var(--admin-chart-axis)", offsetX: 18, toolbar: { show: false } },
-    labels: ["Ready", "Processing", "Failed"],
-    colors: ["var(--admin-chart-primary)", "var(--admin-chart-secondary)", "var(--admin-chart-error)"],
-    plotOptions: { pie: { donut: { size: "75%" } } },
-    stroke: { show: false },
-    dataLabels: { enabled: false },
-    legend: { show: false },
-    tooltip: { theme: "dark" },
-  };
-
-  return (
-    <AdminCard className="p-6 admin-enter admin-enter-delay-2">
-      <div className="grid grid-cols-12 gap-2">
-        <div className="col-span-7 flex flex-col">
-          <h5 className="mb-4 whitespace-nowrap text-lg font-bold text-[var(--admin-heading)]">Document Health</h5>
-          <h4 className="mb-2 text-xl font-bold text-[var(--admin-heading)]">
-            <AnimatedNumber value={total} />
-          </h4>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex items-center justify-center rounded-full bg-[var(--admin-lightsuccess)] p-1 text-[var(--admin-success)]">
-              <Icon icon="tabler:arrow-up-left" width={14} height={14} />
-            </span>
-            <p className="text-sm text-[var(--admin-muted)]">{readyPercent}% ready</p>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <span className="flex items-center gap-1 text-xs text-[var(--admin-muted)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--admin-chart-primary)]" /> Ready
-            </span>
-            <span className="flex items-center gap-1 text-xs text-[var(--admin-muted)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--admin-chart-secondary)]" /> Processing
-            </span>
-            <span className="flex items-center gap-1 text-xs text-[var(--admin-muted)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--admin-chart-error)]" /> Failed
-            </span>
-          </div>
-        </div>
-        <div className="col-span-5 flex items-center justify-center">
-          <AdminChart
-            type="donut"
-            height={190}
-            options={options}
-            series={[readyDocuments, processingDocuments, failedDocuments]}
-          />
-        </div>
-      </div>
-    </AdminCard>
-  );
-}
-
 function EngagementSparkCard({
   activeUsers,
   totalUsers,
@@ -539,7 +492,7 @@ function RecentUsersTimeline({ recentUsers }: { recentUsers: DashboardRecentUser
       </div>
       <div className="mt-6">
         {recentUsers.length === 0 ? (
-          <div className="rounded-[7px] border border-dashed border-[var(--admin-border)] p-4 text-sm text-[var(--admin-muted)]">
+          <div className="rounded-xl border border-dashed border-[var(--admin-border)] p-4 text-sm text-[var(--admin-muted)]">
             No users found yet.
           </div>
         ) : (
@@ -660,6 +613,7 @@ export default async function AdminDashboard() {
     inactiveUsers7d,
     todaySessions,
     departments,
+    sourceTypes,
     lastUploads,
     teamsWithNoFiles,
     activityLogs,
@@ -718,16 +672,45 @@ export default async function AdminDashboard() {
     .slice(0, 8);
 
   const departmentOptions = {
-    chart: { toolbar: { show: false }, fontFamily: "inherit", foreColor: "var(--admin-chart-axis)" },
+    chart: {
+      toolbar: { show: false },
+      fontFamily: "inherit",
+      foreColor: "var(--admin-chart-axis)",
+      animations: {
+        enabled: true,
+        speed: 400,
+        animateGradually: { enabled: true, delay: 80 },
+        dynamicAnimation: { enabled: true, speed: 350 },
+      },
+    },
     colors: ["var(--admin-chart-primary)"],
-    dataLabels: { enabled: false },
+    dataLabels: {
+      enabled: true,
+      style: { fontSize: "12px", fontWeight: 700, colors: ["var(--admin-heading)"] },
+      offsetY: -6,
+    },
     grid: { borderColor: "var(--admin-chart-grid)", strokeDashArray: 3 },
-    plotOptions: { bar: { borderRadius: 6, columnWidth: "34%" } },
+    plotOptions: {
+      bar: {
+        borderRadius: 8,
+        columnWidth: "34%",
+        endingShape: "rounded" as const,
+      },
+    },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shadeIntensity: 0,
+        opacityFrom: 0.95,
+        opacityTo: 0.6,
+        stops: [0, 100],
+      },
+    },
     xaxis: {
       categories: topDepartments.map((dept) => dept.name),
       axisBorder: { show: false },
       axisTicks: { show: false },
-      labels: { rotate: -20, trim: true },
+      labels: { rotate: -20, trim: true, style: { colors: "var(--admin-chart-axis)" } },
     },
     yaxis: { labels: { show: false } },
     tooltip: { theme: "dark" },
@@ -760,6 +743,9 @@ export default async function AdminDashboard() {
                 processingDocuments={processingDocuments}
                 failedDocuments={failedDocuments}
               />
+            </div>
+            <div className="col-span-12">
+              <SourcesByTypeCard sourceTypes={sourceTypes} />
             </div>
             <div className="col-span-12">
               <EngagementSparkCard
@@ -798,7 +784,7 @@ export default async function AdminDashboard() {
             <AdminCardHeader title="Attention queue" subtitle="Items that need admin action today." />
             <div className="mt-5 space-y-3">
               {attentionItems.length === 0 ? (
-                <div className="rounded-[7px] border border-emerald-300/50 bg-[var(--admin-lightsuccess)] p-4">
+                <div className="rounded-xl border border-emerald-300/50 bg-[var(--admin-lightsuccess)] p-4">
                   <div className="flex items-start gap-3">
                     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-[var(--admin-success)]">
                       <Icon icon="solar:check-circle-linear" width={20} height={20} />
@@ -811,7 +797,7 @@ export default async function AdminDashboard() {
                 </div>
               ) : (
                 attentionItems.map((item, index) => (
-                  <div key={`${item.severity}-${index}`} className="rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)] p-4 transition hover:border-[var(--admin-primary)]">
+                  <div key={`${item.severity}-${index}`} className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] p-4 transition hover:border-[var(--admin-primary)]">
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--admin-lightwarning)] text-[var(--admin-warning)]">
                         <Icon icon="solar:shield-warning-linear" width={19} height={19} />
@@ -864,7 +850,7 @@ export default async function AdminDashboard() {
                   <TableRow key={doc.id} className="border-b border-[var(--admin-border)] transition hover:bg-[var(--admin-background)]">
                     <TableCell className="min-w-[240px]">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[7px] bg-[var(--admin-lightprimary)] text-[var(--admin-primary)]">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--admin-lightprimary)] text-[var(--admin-primary)]">
                           <Icon
                             icon={doc.type === "url" ? "solar:link-round-linear" : doc.type === "pdf" ? "solar:file-text-linear" : "solar:document-text-linear"}
                             width={20}
