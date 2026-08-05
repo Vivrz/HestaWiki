@@ -83,7 +83,7 @@ export default function DocumentHealthCard({
   };
 
   return (
-    <AdminCard className="p-6 admin-enter admin-enter-delay-2">
+    <AdminCard className="flex h-full flex-col p-6 admin-enter admin-enter-delay-2">
       <div className="flex items-start justify-between">
         <div>
           <h5 className="text-lg font-bold text-[var(--admin-heading)]">Document Health</h5>
@@ -95,7 +95,7 @@ export default function DocumentHealthCard({
         </span>
       </div>
 
-      <div className="flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <AdminChart
           type="donut"
           height={235}

@@ -732,37 +732,33 @@ export default async function AdminDashboard() {
       />
 
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8">
+        <div className="col-span-12 lg:col-span-5">
           <SalesOverviewCard activityByDay={activityByDay} />
         </div>
-        <div className="col-span-12 lg:col-span-4">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12">
-              <DocumentHealthCard
-                readyDocuments={readyDocuments}
-                processingDocuments={processingDocuments}
-                failedDocuments={failedDocuments}
-              />
-            </div>
-            <div className="col-span-12">
-              <SourcesByTypeCard sourceTypes={sourceTypes} />
-            </div>
-            <div className="col-span-12">
-              <EngagementSparkCard
-                activeUsers={activeUsers}
-                totalUsers={totalUsers}
-                inactiveUsers7d={inactiveUsers7d}
-                failedDocuments={failedDocuments}
-                processingDocuments={processingDocuments}
-                teamsWithNoFiles={teamsWithNoFiles}
-                activityByDay={activityByDay}
-              />
-            </div>
-          </div>
+        <div className="col-span-12 md:col-span-6 lg:col-span-3">
+          <DocumentHealthCard
+            readyDocuments={readyDocuments}
+            processingDocuments={processingDocuments}
+            failedDocuments={failedDocuments}
+          />
+        </div>
+        <div className="col-span-12 md:col-span-6 lg:col-span-4">
+          <SourcesByTypeCard sourceTypes={sourceTypes} />
         </div>
 
         <div className="col-span-12 lg:col-span-4">
-          <RecentUsersTimeline recentUsers={recentUsers} />
+          <div className="grid h-full grid-cols-1 gap-6">
+            <EngagementSparkCard
+              activeUsers={activeUsers}
+              totalUsers={totalUsers}
+              inactiveUsers7d={inactiveUsers7d}
+              failedDocuments={failedDocuments}
+              processingDocuments={processingDocuments}
+              teamsWithNoFiles={teamsWithNoFiles}
+              activityByDay={activityByDay}
+            />
+            <RecentUsersTimeline recentUsers={recentUsers} />
+          </div>
         </div>
         <div className="col-span-12 flex lg:col-span-8">
           <ActivityPerformanceTable activityLogs={activityLogs} />
