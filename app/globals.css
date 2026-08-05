@@ -202,7 +202,6 @@
 
 @layer utilities {
   .page-wrapper {
-    margin-left: calc(0px + 270px);
     transition: 0.2s ease-in;
   }
 
@@ -341,12 +340,6 @@
   .admin-hero-plant {
     animation: adminHeroPlant 3.8s ease-in-out infinite;
     transform-origin: 357px 182px;
-  }
-
-  @media screen and (max-width: 1280px) {
-    .page-wrapper {
-      margin-left: 0;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {

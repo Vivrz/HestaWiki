@@ -14,13 +14,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  AMLogo,
-  AMMenu,
-  AMMenuItem,
-  AMSidebar,
-} from "tailwind-sidebar";
-import "tailwind-sidebar/styles.css";
+import { cn } from "@/lib/utils";
 import HestawikiWordmark from "@/components/admin/HestawikiWordmark";
 import { Button } from "@/components/ui/button";
 import RateLimitCountdownBadge from "@/components/ui/RateLimitCountdownBadge";
@@ -133,74 +127,84 @@ function ThemeToggle() {
   );
 }
 
-function renderSidebarItems(pathname: string, onClose?: () => void) {
-  return navSections.map((section) => (
-    <div key={section.heading}>
-      <div className="mb-1">
-        <AMMenu
-          subHeading={section.heading}
-          ClassName="hide-menu leading-[21px] text-[var(--admin-heading)] font-bold uppercase text-xs"
-        />
-      </div>
-      {section.children.map((item) => {
-        const iconElement = <Icon icon={item.icon} height={21} width={21} />;
-        const isSelected = isActivePath(pathname, item.url);
-
-        return (
-          <div onClick={onClose} key={item.id}>
-            <AMMenuItem
-              icon={iconElement}
-              isSelected={isSelected}
-              link={item.url}
-              component={Link}
-              className="mt-0.5 text-[var(--admin-link)]"
-            >
-              <span className="truncate flex-1">{item.name}</span>
-            </AMMenuItem>
-          </div>
-        );
-      })}
-    </div>
-  ));
-}
-
 function SidebarLayout({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { theme } = useAdminTheme();
+  const isDark = theme === "dark";
 
   return (
-    <AMSidebar
-      collapsible="none"
-      animation={true}
-      showProfile={false}
-      width="270px"
-      showTrigger={false}
-      mode={theme}
-      className="fixed left-0 top-0 border border-[var(--admin-border)] bg-[var(--admin-card)] z-10 h-screen"
-    >
-      <div className="px-6 flex items-center brand-logo overflow-hidden">
-        <AMLogo component={Link} href="/admin" img="">
-          <HestawikiWordmark tone="light" />
-        </AMLogo>
+    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--admin-border)] bg-[var(--admin-card)]">
+      <div className="flex h-16 shrink-0 items-center border-b border-[var(--admin-border)] px-5">
+        <Link href="/admin" onClick={onClose} className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--admin-primary)] to-[var(--admin-secondary)] text-white shadow-md shadow-[var(--admin-lightprimary)]">
+            <Icon icon="solar:widget-4-bold-duotone" width={18} height={18} />
+          </span>
+          <HestawikiWordmark tone={isDark ? "dark" : "light"} />
+        </Link>
       </div>
 
-      <SimpleBar className="h-[calc(100vh-100px)]">
-        <div className="px-6">
-          {renderSidebarItems(pathname, onClose)}
+      <SimpleBar className="min-h-0 flex-1">
+        <nav className="flex flex-col gap-6 px-3 py-5">
+          {navSections.map((section) => (
+            <div key={section.heading}>
+              <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-[var(--admin-muted)]">
+                {section.heading}
+              </p>
+              <div className="space-y-1">
+                {section.children.map((item) => {
+                  const isActive = isActivePath(pathname, item.url);
 
-          <div className="mt-8 border-t border-[var(--admin-border)] pt-4">
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-500/10"
-            >
-              <Icon icon="solar:logout-2-linear" width={21} height={21} />
-              <span className="truncate">Sign out</span>
-            </button>
-          </div>
-        </div>
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.url}
+                      onClick={onClose}
+                      className={cn(
+                        "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
+                        isActive
+                          ? "bg-[var(--admin-lightprimary)] text-[var(--admin-primary)]"
+                          : "text-[var(--admin-link)] hover:bg-[var(--admin-soft)] hover:text-[var(--admin-heading)]",
+                      )}
+                    >
+                      {isActive ? (
+                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[var(--admin-primary)]" />
+                      ) : null}
+                      <Icon
+                        icon={item.icon}
+                        width={20}
+                        height={20}
+                        className={cn(
+                          "shrink-0 transition-colors",
+                          isActive
+                            ? "text-[var(--admin-primary)]"
+                            : "text-[var(--admin-muted)] group-hover:text-[var(--admin-primary)]",
+                        )}
+                      />
+                      <span className="truncate">{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
       </SimpleBar>
-    </AMSidebar>
+
+      <div className="shrink-0 space-y-1 border-t border-[var(--admin-border)] p-3">
+        <div className="flex items-center justify-between rounded-xl px-2">
+          <span className="text-xs font-semibold text-[var(--admin-muted)]">Theme</span>
+          <ThemeToggle />
+        </div>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-500/10 dark:text-rose-400"
+        >
+          <Icon icon="solar:logout-2-linear" width={20} height={20} />
+          <span className="truncate">Sign out</span>
+        </button>
+      </div>
+    </aside>
   );
 }
 
@@ -279,10 +283,10 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
       <RateLimitToast notice={toastNotice} onDismiss={dismissToast} />
       <div className="flex w-full min-h-screen">
         <div className="page-wrapper flex w-full">
-          <div className="xl:block hidden">
+          <div className="hidden xl:block">
             <SidebarLayout />
           </div>
-          <div className="body-wrapper w-full bg-[var(--admin-background)]">
+          <div className="body-wrapper min-w-0 flex-1 bg-[var(--admin-background)]">
             <AdminHeader onMenu={() => setIsOpen(true)} />
             <main className="container mx-auto max-w-[1400px] px-4 py-6 sm:px-6 xl:px-8 xl:py-[30px]">
               {children}
@@ -299,7 +303,7 @@ function AdminShellInner({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-slate-950/45"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-64 overflow-hidden bg-[var(--admin-card)] shadow-2xl">
+          <div className="absolute left-0 top-0 h-full w-[260px] overflow-hidden bg-[var(--admin-card)] shadow-2xl">
             <SidebarLayout onClose={() => setIsOpen(false)} />
           </div>
         </div>
