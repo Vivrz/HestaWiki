@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Inter, Space_Grotesk } from "next/font/google";
 import ThemeClassInitializer from "@/components/ThemeClassInitializer";
+import { InlineScript } from "@/components/InlineScript";
 import "./globals.css";
 
 const geist = Geist({
@@ -31,9 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
+        <InlineScript html={`(function(){
   try {
     var root = document.documentElement;
     var adminTheme = localStorage.getItem("admin-theme");
@@ -52,9 +51,7 @@ export default function RootLayout({
       root.classList.remove("chat-dark");
     }
   } catch(e) {}
-})();`,
-          }}
-        />
+})();`} />
       </head>
       <body className={`${inter.variable} font-sans`}>
         <ThemeClassInitializer />
