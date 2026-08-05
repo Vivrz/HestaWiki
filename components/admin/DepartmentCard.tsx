@@ -23,11 +23,11 @@ interface DepartmentCardProps {
 type TeamFilter = "all" | "needs" | "covered";
 
 const DEPARTMENT_TONES = [
-  "bg-violet-100 text-violet-700",
-  "bg-sky-100 text-sky-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
+  { badge: "bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300", bar: "#8b5cf6" },
+  { badge: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300", bar: "#0ea5e9" },
+  { badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300", bar: "#10b981" },
+  { badge: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300", bar: "#f59e0b" },
+  { badge: "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300", bar: "#f43f5e" },
 ] as const;
 
 function toneForDepartment(name: string) {
@@ -50,6 +50,10 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
     if (filter === "covered") return departments.filter((dept) => dept._count.documents > 0);
     return departments;
   }, [departments, filter]);
+
+  const maxDocs = Math.max(...departments.map((dept) => dept._count.documents), 0);
+  const coverageFor = (docCount: number) =>
+    maxDocs > 0 ? Math.min(100, Math.max(0, Math.round((docCount / maxDocs) * 100))) : 0;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,38 +150,58 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           const needsAction = docCount === 0;
           const queryCount = docCount > 0 ? (docCount * 3) + 2 : 0;
           const tone = toneForDepartment(dept.name);
+          const coverage = coverageFor(docCount);
 
           return (
-            <AdminCard key={dept.id} className="p-4">
+            <AdminCard key={dept.id} className="p-5">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${tone}`}>
-                    <HiOutlineOfficeBuilding className="h-4 w-4" />
+                  <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone.badge}`}>
+                    <HiOutlineOfficeBuilding className="h-5 w-5" />
                   </span>
-                  <div>
-                    <p className="text-xl font-bold text-[var(--admin-heading)]">{dept.name}</p>
-                    <p className="text-sm text-[var(--admin-muted)]">
-                      {docCount} document{docCount === 1 ? "" : "s"}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-bold text-[var(--admin-heading)]">{dept.name}</p>
+                    <p className="text-xs text-[var(--admin-muted)]">
+                      {docCount} document{docCount === 1 ? "" : "s"} indexed
                     </p>
+                  </div>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      needsAction
+                        ? "bg-[var(--admin-lightwarning)] text-[var(--admin-warning)]"
+                        : "bg-[var(--admin-lightsuccess)] text-[var(--admin-success)]"
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${needsAction ? "bg-[var(--admin-warning)]" : "bg-[var(--admin-success)]"}`} />
+                    {needsAction ? "Empty" : "Active"}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[var(--admin-muted)]">Coverage</span>
+                    <span className="font-bold" style={{ color: tone.bar }}>{coverage}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[var(--admin-background)]">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${coverage}%`, background: tone.bar }}
+                    />
                   </div>
                 </div>
 
-                <div className="h-px bg-[var(--admin-border)]" />
-
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 divide-x divide-[var(--admin-border)] overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] py-3 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-[var(--admin-heading)]">{docCount}</p>
-                    <p className="text-xs text-[var(--admin-muted)]">docs</p>
+                    <p className="text-lg font-bold text-[var(--admin-heading)]">{docCount}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--admin-muted)]">docs</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-[var(--admin-heading)]">{queryCount}</p>
-                    <p className="text-xs text-[var(--admin-muted)]">queries</p>
+                    <p className="text-lg font-bold text-[var(--admin-heading)]">{queryCount}</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--admin-muted)]">queries</p>
                   </div>
                   <div>
-                    <p className={`text-2xl font-bold ${needsAction ? "text-[var(--admin-warning)]" : "text-[var(--admin-success)]"}`}>
-                      {needsAction ? "Empty" : "Active"}
-                    </p>
-                    <p className="text-xs text-[var(--admin-muted)]">status</p>
+                    <p className="text-lg font-bold" style={{ color: tone.bar }}>{coverage}%</p>
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--admin-muted)]">coverage</p>
                   </div>
                 </div>
 
@@ -185,7 +209,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
+                    className="h-8 flex-1 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=upload&dept=${dept.id}`)}
                   >
                     <HiUpload className="h-3.5 w-3.5" />
@@ -194,7 +218,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
+                    className="h-8 flex-1 border-[var(--admin-border)] bg-[var(--admin-card)] px-3 text-xs text-[var(--admin-link)] hover:bg-[var(--admin-soft)]"
                     onClick={() => router.push(`/admin/data-management?tab=documents&dept=${dept.id}`)}
                   >
                     <HiEye className="h-3.5 w-3.5" />
@@ -206,7 +230,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
                     onClick={() => {
                       if (docCount === 0) setDeleteConfirm(dept);
                     }}
-                    className={`ml-auto rounded-md p-1.5 ${
+                    className={`ml-auto rounded-lg p-2 ${
                       docCount === 0 ? "text-rose-500 hover:bg-rose-500/10 hover:text-rose-600" : "cursor-not-allowed text-[var(--admin-faint)]"
                     }`}
                     aria-label={docCount === 0 ? `Delete ${dept.name}` : `${dept.name} cannot be deleted while documents exist`}
