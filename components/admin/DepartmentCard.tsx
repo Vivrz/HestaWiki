@@ -224,7 +224,7 @@ export default function DepartmentCard({ departments, onRefresh }: DepartmentCar
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex min-h-[250px] items-center justify-center rounded-[7px] border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)] hover:text-[var(--admin-primary)]"
+            className="flex min-h-[250px] items-center justify-center rounded-xl border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)] hover:text-[var(--admin-primary)]"
           >
             <span className="flex flex-col items-center gap-2">
               <HiPlus className="h-7 w-7" />

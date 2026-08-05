@@ -226,7 +226,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
               }}
               onDragLeave={() => setIsDraggingFile(false)}
               onDrop={handleFileDrop}
-              className={`w-full rounded-[7px] border-2 border-dashed px-6 py-12 text-center transition ${
+              className={`w-full rounded-xl border-2 border-dashed px-6 py-12 text-center transition ${
                 isDraggingFile
                   ? "border-[var(--admin-primary)] bg-[var(--admin-soft)]"
                   : "border-[var(--admin-border)] bg-[var(--admin-background)] hover:border-[var(--admin-primary)] hover:bg-[var(--admin-soft)]"
@@ -245,7 +245,7 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
               <p className="mt-3 text-xs text-[var(--admin-faint)]">Max size: 50MB</p>
             </button>
           ) : (
-            <div className="rounded-[7px] border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-6">
+            <div className="rounded-xl border-2 border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-6">
               <p className="text-sm font-semibold text-[var(--admin-heading)]">Paste page URL to ingest</p>
               <Input
                 className="mt-3 rounded-xl border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] placeholder:text-[var(--admin-muted)]"
@@ -317,12 +317,12 @@ export default function UploadTabs({ initialDept = "" }: UploadTabsProps) {
         />
         <div className="mt-4 space-y-2">
           {queueDocs.length === 0 ? (
-            <p className="rounded-[7px] border border-dashed border-[var(--admin-border)] p-6 text-center text-sm text-[var(--admin-muted)]">
+            <p className="rounded-xl border border-dashed border-[var(--admin-border)] p-6 text-center text-sm text-[var(--admin-muted)]">
               No files in queue yet.
             </p>
           ) : (
             queueDocs.map((doc) => (
-              <div key={doc.id} className="flex items-start justify-between gap-3 rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)] p-3">
+              <div key={doc.id} className="flex items-start justify-between gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] p-3">
                 <div className="flex min-w-0 items-start gap-2">
                   <HiDocumentText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
                   <div className="min-w-0">

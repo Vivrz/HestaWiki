@@ -49,7 +49,7 @@ export default function RateLimitToast({
       role="alert"
       aria-live="assertive"
       className={cn(
-        "fixed right-4 top-4 z-[120] w-[calc(100vw-2rem)] max-w-sm rounded-[7px] border border-white/10 bg-[#1F1F1E] p-4 text-white shadow-xl shadow-slate-900/25 transition-all duration-200 sm:right-6 sm:top-6",
+        "fixed right-4 top-4 z-[120] w-[calc(100vw-2rem)] max-w-sm rounded-xl border border-white/10 bg-[#1F1F1E] p-4 text-white shadow-xl shadow-slate-900/25 transition-all duration-200 sm:right-6 sm:top-6",
         visible ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0",
       )}
     >

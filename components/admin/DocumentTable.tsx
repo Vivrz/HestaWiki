@@ -142,9 +142,9 @@ export default function DocumentTable() {
       {deleteError ? <Alert variant="destructive">{deleteError}</Alert> : null}
 
       {loading ? (
-        <div className="rounded-[7px] border border-[var(--admin-border)] p-10 text-center text-sm text-[var(--admin-muted)]">Loading files...</div>
+        <div className="rounded-xl border border-[var(--admin-border)] p-10 text-center text-sm text-[var(--admin-muted)]">Loading files...</div>
       ) : documents.length === 0 ? (
-        <div className="rounded-[7px] border border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-10 text-center">
+        <div className="rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-10 text-center">
           <p className="text-lg font-bold text-[var(--admin-heading)]">No files found</p>
           <p className="mt-2 text-sm text-[var(--admin-muted)]">Try a different search or department filter.</p>
         </div>
@@ -217,7 +217,7 @@ export default function DocumentTable() {
       >
         {selectedDoc ? (
           <div className={previewUrl ? "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]" : "max-w-2xl"}>
-            <div className="rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)] p-4">
+            <div className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] p-4">
               <dl className="space-y-3 text-sm">
                 <div>
                   <dt className="font-semibold text-[var(--admin-heading)]">Name</dt>
@@ -280,7 +280,7 @@ export default function DocumentTable() {
             </div>
 
             {previewUrl ? (
-              <div className="min-w-0 overflow-hidden rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)]">
+              <div className="min-w-0 overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)]">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-3">
                   <div>
                     <p className="text-sm font-semibold text-[var(--admin-heading)]">Document preview</p>

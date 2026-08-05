@@ -58,7 +58,7 @@ export default function UserList({ users }: UserListProps) {
 
   if (users.length === 0) {
     return (
-      <div className="rounded-[7px] border border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-10 text-center">
+      <div className="rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-background)] p-10 text-center">
         <p className="text-lg font-bold text-[var(--admin-heading)]">No people found</p>
         <p className="mt-2 text-sm text-[var(--admin-muted)]">Try changing your search or role filter.</p>
       </div>
@@ -78,7 +78,7 @@ export default function UserList({ users }: UserListProps) {
                 setExpandedUserId((prev) => (prev === user.id ? null : user.id));
                 setExpandedSessionId(null);
               }}
-              className={`flex w-full items-center gap-3 rounded-[7px] border px-4 py-3 text-left transition ${
+              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
                 isExpanded
                   ? "border-[var(--admin-border)] bg-[var(--admin-background)]"
                   : "border-[var(--admin-border)] bg-transparent hover:bg-[var(--admin-background)]"
@@ -102,7 +102,7 @@ export default function UserList({ users }: UserListProps) {
             </button>
 
             {isExpanded ? (
-              <div className="mt-2 rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-background)] p-3">
+              <div className="mt-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-background)] p-3">
                 <p className="mb-2 text-xs font-bold uppercase text-[var(--admin-muted)]">
                   {user.sessions.length} session{user.sessions.length === 1 ? "" : "s"}
                 </p>
@@ -113,7 +113,7 @@ export default function UserList({ users }: UserListProps) {
                     {user.sessions.map((session) => {
                       const isSessionOpen = expandedSessionId === session.id;
                       return (
-                        <div key={session.id} className="rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-card)]">
+                        <div key={session.id} className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)]">
                           <button
                             type="button"
                             onClick={() => setExpandedSessionId((prev) => (prev === session.id ? null : session.id))}

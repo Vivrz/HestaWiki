@@ -29,7 +29,7 @@ export function Dialog({
     >
       <div
         className={cn(
-          "w-full overflow-hidden rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] shadow-2xl",
+          "w-full overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-link)] shadow-2xl",
           maxWidthClassName,
         )}
         onClick={(event) => event.stopPropagation()}

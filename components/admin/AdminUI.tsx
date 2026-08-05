@@ -14,7 +14,7 @@ export function AdminCard({ children, className = "" }: AdminCardProps) {
   return (
     <section
       className={cn(
-        "admin-dashboard-card rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-heading)] shadow-[0_1px_4px_rgba(133,146,173,0.2)]",
+        "admin-dashboard-card rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-heading)] shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.25)]",
         className,
       )}
     >
@@ -142,14 +142,14 @@ export function TableCard({ title, subtitle, subtitleClassName, action, children
   return (
     <AdminCard className={cn("p-5", className)}>
       <AdminCardHeader title={title} subtitle={subtitle} subtitleClassName={subtitleClassName} action={action} />
-      <div className="mt-5 overflow-x-auto rounded-[7px] border border-[var(--admin-border)] bg-[var(--admin-card)]">{children}</div>
+      <div className="mt-5 overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)]">{children}</div>
     </AdminCard>
   );
 }
 
 export function TableFrame({ children, className = "" }: AdminCardProps) {
   return (
-    <div className={cn("overflow-x-auto rounded-[7px] border border-[var(--admin-border)]", className)}>
+    <div className={cn("overflow-x-auto rounded-xl border border-[var(--admin-border)]", className)}>
       {children}
     </div>
   );
